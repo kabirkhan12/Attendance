@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Corporate Management</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-900 flex justify-center h-screen">
+    <div class="w-full max-w-lg bg-white h-full shadow-lg flex flex-col relative">
+        
+        <!-- CORPORATE LOGIN VIEW -->
+        <div id="loginView" class="p-8 flex flex-col justify-center h-full">
+            <h1 class="text-3xl font-bold mb-2 text-gray-800">Corporate Login</h1>
+            <p class="text-gray-500 mb-8">Authorized personnel only.</p>
+            
+            <input type="email" id="corpEmail" placeholder="Corporate Email" class="p-4 border border-gray-300 rounded mb-4 bg-gray-50 focus:outline-none focus:border-blue-500">
+            <input type="password" id="corpPassword" placeholder="Password" class="p-4 border border-gray-300 rounded mb-8 bg-gray-50 focus:outline-none focus:border-blue-500">
+            
+            <button onclick="corporateLogin()" class="bg-indigo-600 text-white p-4 rounded-lg font-bold text-lg shadow-md hover:bg-indigo-700 transition">Access System</button>
+        </div>
+
+        <!-- CORPORATE DASHBOARD VIEW (Hidden initially) -->
+        <div id="dashboardView" class="hidden flex-col h-full overflow-hidden">
+            <!-- Header -->
+            <div class="bg-indigo-700 p-4 text-white flex justify-between items-center shadow-md z-10">
+                <h1 class="font-bold text-lg">Corporate Dashboard</h1>
+                <button onclick="logout()" class="bg-indigo-800 px-3 py-1 rounded text-sm hover:bg-indigo-900 transition">Logout</button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="p-6 overflow-y-auto bg-gray-100 flex-grow">
+                
+                <!-- Create Firm Admin Form -->
+                <div class="bg-white p-5 rounded-xl shadow-sm mb-6 border border-gray-200">
+                    <h2 class="font-bold text-lg mb-4 text-gray-800">Register New Firm Admin</h2>
+                    <input type="text" id="newFirmName" placeholder="Firm Name (e.g. GSM Solution)" class="w-full p-3 border rounded mb-3 bg-gray-50">
+                    <input type="email" id="newAdminEmail" placeholder="Admin Login ID / Email" class="w-full p-3 border rounded mb-3 bg-gray-50">
+                    <input type="text" id="newAdminPassword" placeholder="Admin Password" class="w-full p-3 border rounded mb-4 bg-gray-50">
+                    
+                    <button onclick="addFirmAdmin()" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold shadow hover:bg-indigo-700 transition">Create Firm Admin</button>
+                </div>
+
+                <!-- List of Firm Admins -->
+                <h2 class="font-bold text-lg mb-3 text-gray-800">Active Firms & Admins</h2>
+                <div id="adminList" class="flex flex-col gap-3 pb-6">
+                    <!-- List populates here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
+        const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // 1. Corporate Login using Supabase Authentication
+        async function corporateLogin() {
+            const email = document.getElementById('corpEmail').value;
+            const password = document.getElementById('corpPassword').value;
+            
+            // This checks the user you created in the Supabase Auth Dashboard
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+            
+            if (error) {
+                alert("Access Denied: " + error.message);
+                return;
+            }
+            
+            // Login successful
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+            document.getElementById('dashboardView').classList.add('flex');
+            
+            loadFirmAdmins();
+        }
+
+        // 2. Add a new Admin account into the 'admins' table
+        async function addFirmAdmin() {
+            const firm_name = document.getElementById('newFirmName').value;
+            const email = document.getElementById('newAdminEmail').value;
+            const password = document.getElementById('newAdminPassword').value;
+
+            if (!firm_name || !email || !password) return alert("All fields are required!");
+
+            const { error } = await supabaseClient.from('admins').insert([{
+                firm_name: firm_name,
+                email: email,
+                password: password
+            }]);
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("Firm Admin Created successfully!");
+                // Clear inputs
+                document.getElementById('newFirmName').value = '';
+                document.getElementById('newAdminEmail').value = '';
+                document.getElementById('newAdminPassword').value = '';
+                
+                loadFirmAdmins(); // Refresh the list
+            }
+        }
+
+        // 3. Load all admins from the database
+        async function loadFirmAdmins() {
+            const { data, error } = await supabaseClient.from('admins').select('*').order('id', { ascending: false });
+            
+            if (error) {
+                console.error("Error fetching admins:", error);
+                return;
+            }
+            
+            const list = document.getElementById('adminList');
+            list.innerHTML = data.map(admin => `
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-indigo-700 text-lg">${admin.firm_name || 'Unnamed Firm'}</h3>
+                    <div class="mt-2 text-sm text-gray-600">
+                        <p>Admin ID: <span class="font-mono bg-gray-100 px-1 rounded">${admin.email}</span></p>
+                        <p>Password: <span class="font-mono bg-gray-100 px-1 rounded">${admin.password}</span></p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 4. Logout
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            location.reload();
+        }
+
+        // Check if already logged in on page load
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('dashboardView').classList.remove('hidden');
+                document.getElementById('dashboardView').classList.add('flex');
+                loadFirmAdmins();
+            }
+        }
+        
+        checkSession();
+    </script>
+</body>
+</html>
