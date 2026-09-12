@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>User Portal</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body class="bg-gray-100 flex justify-center h-screen bg-black">
+    <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col relative">
+        
+        <!-- LOGIN VIEW -->
+        <div id="loginView" class="p-6 flex flex-col justify-center h-full bg-white z-50 absolute inset-0">
+            <a href="index.html" class="text-blue-500 mb-6">&larr; Back to Home</a>
+            <h1 class="text-2xl font-bold mb-6">User Login</h1>
+            <input type="text" id="userId" placeholder="Login ID" class="p-3 border rounded mb-3 bg-gray-50">
+            <input type="password" id="userPassword" placeholder="Password" class="p-3 border rounded mb-6 bg-gray-50">
+            <button onclick="userLogin()" class="bg-green-600 text-white p-3 rounded font-bold">Login</button>
+        </div>
+
+        <!-- CAMERA VIEW (Hidden initially) -->
+        <div id="cameraView" class="hidden flex-col h-full w-full">
+            <div class="p-4 bg-green-600 text-white flex justify-between items-center z-10">
+                <span id="userNameHeader" class="font-bold">Welcome</span>
+                <button onclick="location.reload()" class="text-sm border px-2 py-1 rounded">Logout</button>
+            </div>
+
+            <!-- Video area -->
+            <div class="flex-grow bg-black relative flex items-center justify-center overflow-hidden">
+                <video id="video" autoplay muted playsinline class="object-cover w-full h-full"></video>
+                <div class="absolute inset-0 border-4 border-dashed border-white opacity-50 m-12 rounded-lg pointer-events-none"></div>
+                <p id="statusText" class="absolute bottom-4 text-white bg-black bg-opacity-75 px-4 py-2 rounded font-semibold text-center w-3/4">Loading Camera...</p>
+            </div>
+
+            <!-- Registration Controls -->
+            <div id="registerControls" class="hidden p-6 bg-white rounded-t-3xl -mt-6 z-10">
+                <p class="text-center text-sm mb-4 text-gray-600">You must register your face for the first time.</p>
+                <button onclick="registerFace()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">REGISTER MY FACE</button>
+            </div>
+
+            <!-- Punch In/Out Controls -->
+            <div id="punchControls" class="hidden p-6 bg-white rounded-t-3xl -mt-6 z-10 flex gap-4">
+                <button onclick="recordAttendance('in')" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">PUNCH IN</button>
+                <button onclick="recordAttendance('out')" class="flex-1 bg-red-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">PUNCH OUT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
+        const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentUser = null;
+        const video = document.getElementById('video');
+        const statusText = document.getElementById('statusText');
+
+        async function userLogin() {
+            const loginId = document.getElementById('userId').value;
+            const password = document.getElementById('userPassword').value;
+            
+            const { data, error } = await supabaseClient.from('employees')
+                .select('*').eq('login_id', loginId).eq('password', password).single();
+            
+            if (error || !data) return alert("Invalid Login ID or Password");
+            
+            currentUser = data;
+            document.getElementById('userNameHeader').innerText = "Hi, " + currentUser.name;
+            
+            // Switch views
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('cameraView').classList.remove('hidden');
+            document.getElementById('cameraView').classList.add('flex');
+
+            // Show correct buttons based on if face is registered
+            if (!currentUser.face_descriptor) {
+                document.getElementById('registerControls').classList.remove('hidden');
+            } else {
+                document.getElementById('punchControls').classList.remove('hidden');
+            }
+
+            loadModels(); // Start AI Models and Camera
+        }
+
+        async function loadModels() {
+            statusText.innerText = "Loading AI Models...";
+            const MODEL_URL = './models';
+            try {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                statusText.innerText = "Models Loaded.";
+                startVideo();
+            } catch (err) {
+                statusText.innerText = "Error loading models.";
+            }
+        }
+
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                video.srcObject = stream;
+                statusText.innerText = "Ready! Look at the camera.";
+            } catch (err) {
+                statusText.innerText = "Camera Access Denied!";
+            }
+        }
+
+        // --- FACE REGISTRATION LOGIC ---
+        async function registerFace() {
+            statusText.innerText = "Scanning Face for Registration...";
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            
+            if (!detection) return alert("No face detected! Look directly at the camera in good lighting.");
+            
+            // Convert array to string to save in database
+            const descriptorString = JSON.stringify(Array.from(detection.descriptor));
+            
+            const { error } = await supabaseClient.from('employees')
+                .update({ face_descriptor: descriptorString })
+                .eq('id', currentUser.id);
+            
+            if (error) return alert("Error saving face: " + error.message);
+            
+            alert("Face Registered Successfully! You can now Punch In/Out.");
+            
+            // Update local user and swap buttons
+            currentUser.face_descriptor = descriptorString;
+            document.getElementById('registerControls').classList.add('hidden');
+            document.getElementById('punchControls').classList.remove('hidden');
+            document.getElementById('punchControls').classList.add('flex');
+            statusText.innerText = "Ready! Look at the camera.";
+        }
+
+        // --- ATTENDANCE PUNCH LOGIC ---
+        async function recordAttendance(type) {
+            statusText.innerText = "Verifying Identity...";
+            
+            // 1. Capture live face
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+            if (!detection) {
+                statusText.innerText = "Ready! Look at the camera.";
+                return alert("No face detected! Look directly at the camera.");
+            }
+
+            // 2. Compare live face with user's saved face
+            const liveDesc = detection.descriptor;
+            const savedDesc = new Float32Array(JSON.parse(currentUser.face_descriptor));
+            
+            // Calculate mathematical distance between faces (lower = better match)
+            const distance = faceapi.euclideanDistance(liveDesc, savedDesc);
+            
+            if (distance > 0.6) {
+                statusText.innerText = "Ready! Look at the camera.";
+                return alert("Face does NOT match the registered user! Access Denied.");
+            }
+
+            // 3. Match successful, save attendance
+            const now = new Date().toISOString();
+            const dateOnly = new Date().toISOString().split('T')[0];
+
+            if (type === 'in') {
+                const { error } = await supabaseClient.from('attendance').insert([{
+                    employee_id: currentUser.id, date: dateOnly, punch_in: now
+                }]);
+                
+                if (error && error.code === '23505') alert("You have already punched in today!");
+                else if (error) alert("Error punching in: " + error.message);
+                else alert("Punch IN Successful!");
+                
+            } else {
+                const { error } = await supabaseClient.from('attendance')
+                    .update({ punch_out: now })
+                    .eq('employee_id', currentUser.id)
+                    .eq('date', dateOnly);
+                
+                if (error) alert("Error punching out: " + error.message);
+                else alert("Punch OUT Successful!");
+            }
+            
+            statusText.innerText = "Ready! Look at the camera.";
+        }
+    </script>
+</body>
+</html>
