@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Labour Attendance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Face API script would go here: <script src="face-api.min.js"></script> -->
+</head>
+<body class="bg-gray-100 flex justify-center h-screen bg-black">
+    <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col relative">
+        
+        <!-- Header -->
+        <div class="p-4 bg-green-600 text-white flex justify-between items-center z-10">
+            <a href="index.html" class="text-sm font-bold">&larr; Back</a>
+            <h1 class="text-lg font-bold">Face Attendance</h1>
+            <div class="w-10"></div>
+        </div>
+
+        <!-- Camera Viewfinder -->
+        <div class="flex-grow bg-black relative flex items-center justify-center overflow-hidden">
+            <video id="video" autoplay muted playsinline class="object-cover w-full h-full"></video>
+            <div class="absolute inset-0 border-4 border-dashed border-white opacity-50 m-12 rounded-lg pointer-events-none"></div>
+            <p id="statusText" class="absolute bottom-4 text-white bg-black bg-opacity-50 px-4 py-2 rounded">Position face in frame...</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="p-6 bg-white rounded-t-3xl -mt-6 z-10 flex gap-4">
+            <button onclick="recordAttendance('in')" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">PUNCH IN</button>
+            <button onclick="recordAttendance('out')" class="flex-1 bg-red-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">PUNCH OUT</button>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
+        const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
+        const supabase = supabaseCreateClient.createClient(supabaseUrl, supabaseKey);
+
+        const video = document.getElementById('video');
+        const statusText = document.getElementById('statusText');
+
+        // Start Camera
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                video.srcObject = stream;
+            } catch (err) {
+                statusText.innerText = "Camera Access Denied!";
+            }
+        }
+        startVideo();
+
+        async function recordAttendance(type) {
+            statusText.innerText = "Scanning Face...";
+            
+            // 1. HERE is where you will call faceapi.detectSingleFace(video)
+            // 2. You will compare the captured face_descriptor against descriptors fetched from the 'labours' table.
+            
+            // SIMULATION OF A SUCCESSFUL MATCH:
+            setTimeout(async () => {
+                const matchedLabourId = prompt("Simulation: Face recognized. Enter Labour ID to test database insert:");
+                if (!matchedLabourId) return;
+
+                const now = new Date().toISOString();
+                const dateOnly = new Date().toISOString().split('T')[0];
+
+                if (type === 'in') {
+                    // Check if already punched in
+                    const { data, error } = await supabase.from('attendance').insert([{
+                        labour_id: matchedLabourId, date: dateOnly, punch_in: now
+                    }]);
+                    if (error) alert("Error punching in: " + error.message);
+                    else alert("Punch IN Successful at " + new Date().toLocaleTimeString());
+                } else {
+                    // Update existing row for punch out
+                    const { data, error } = await supabase.from('attendance')
+                        .update({ punch_out: now })
+                        .eq('labour_id', matchedLabourId)
+                        .eq('date', dateOnly);
+                    
+                    if (error) alert("Error punching out: " + error.message);
+                    else alert("Punch OUT Successful at " + new Date().toLocaleTimeString());
+                }
+                statusText.innerText = "Ready for next person.";
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
