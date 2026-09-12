@@ -25,103 +25,211 @@
             <button onclick="adminLogin()" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition">Login to Dashboard</button>
         </div>
 
-        <!-- ================= DASHBOARD VIEW (Hidden initially) ================= -->
-        <div id="dashboardView" class="hidden flex-col h-full w-full">
+        <!-- ================= MAIN APP VIEW (Hidden initially) ================= -->
+        <div id="mainAppView" class="hidden flex-col h-full w-full">
             
             <!-- HEADER -->
             <div class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-10">
-                <!-- Dynamically shows the Firm Name -->
-                <h1 id="firmNameDisplay" class="text-xl font-bold">Loading...</h1>
+                <div class="flex items-center gap-3">
+                    <button id="backBtn" onclick="switchTab('dashboard')" class="hidden"><i class="fas fa-arrow-left"></i></button>
+                    <h1 id="headerTitle" class="text-xl font-bold">Loading...</h1>
+                </div>
                 <div class="flex gap-4">
-                    <!-- Logout Button (CSV removed) -->
+                    <i class="fas fa-headset text-xl hover:text-gray-200 cursor-pointer"></i>
                     <button onclick="logout()"><i class="fas fa-sign-out-alt text-xl hover:text-red-300 transition"></i></button>
                 </div>
             </div>
 
-            <!-- MAIN SCROLLABLE CONTENT -->
-            <div class="flex-grow overflow-y-auto p-4 pb-20">
+            <!-- SCROLLABLE CONTENT AREA -->
+            <div class="flex-grow overflow-y-auto pb-20 bg-gray-50">
                 
-                <!-- Employee Summary Dashboard -->
-                <h2 class="text-sm font-bold text-gray-700 mb-2">Employee Summary</h2>
-                <div class="grid grid-cols-5 gap-2 mb-4 text-center">
-                    <button onclick="filterList('all')" class="border rounded p-2 bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100">
-                        <p id="countAll" class="text-lg font-bold text-blue-600">0</p>
-                        <p class="text-[10px] text-gray-500">All Emp</p>
-                    </button>
-                    <button onclick="filterList('in')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
-                        <p id="countIn" class="text-lg font-bold text-green-500">0</p>
-                        <p class="text-[10px] text-gray-500">Total In</p>
-                    </button>
-                    <button onclick="filterList('out')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
-                        <p id="countOut" class="text-lg font-bold text-orange-500">0</p>
-                        <p class="text-[10px] text-gray-500">Total Out</p>
-                    </button>
-                    <button onclick="filterList('late')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
-                        <p id="countLate" class="text-lg font-bold text-red-500">0</p>
-                        <p class="text-[10px] text-gray-500">Late</p>
-                    </button>
-                    <button onclick="filterList('missing')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
-                        <p id="countMissing" class="text-lg font-bold text-gray-500">0</p>
-                        <p class="text-[10px] text-gray-500">Not Yet In</p>
-                    </button>
-                </div>
-
-                <!-- Search Bar -->
-                <div class="relative mb-4">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                    <input type="text" id="searchInput" onkeyup="searchEmployees()" placeholder="Search by name or code" class="w-full pl-10 p-2 border rounded-lg bg-gray-50 outline-none focus:border-blue-500 text-sm">
-                </div>
-
-                <!-- Employee List -->
-                <h2 class="text-sm font-bold text-gray-700 mb-2">Today</h2>
-                <div id="employeeList" class="flex flex-col gap-3">
-                    <!-- Javascript populates this -->
-                </div>
-
-                <!-- Add Employee Button -->
-                <div class="mt-6 flex justify-center">
-                    <button onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition">
-                        + Add Employee
-                    </button>
-                </div>
-
-                <!-- Hidden Add Employee Form -->
-                <div id="addEmployeeForm" class="hidden mt-4 bg-white p-4 rounded-lg border shadow-sm">
-                    <h3 class="font-bold mb-3 border-b pb-2">New Employee Details</h3>
-                    <input type="text" id="eName" placeholder="Name" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                    <input type="text" id="eCode" placeholder="EMP Code" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <input type="text" id="eLogin" placeholder="Login ID" class="p-2 border rounded text-sm bg-gray-50">
-                        <input type="text" id="ePass" placeholder="Password" class="p-2 border rounded text-sm bg-gray-50">
+                <!-- ================= TAB 1: DASHBOARD ================= -->
+                <div id="tab-dashboard" class="p-4 flex flex-col">
+                    <h2 class="text-sm font-bold text-gray-700 mb-2">Employee Summary</h2>
+                    <div class="grid grid-cols-5 gap-2 mb-4 text-center">
+                        <button onclick="filterList('all')" class="border rounded p-2 bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100">
+                            <p id="countAll" class="text-lg font-bold text-blue-600">0</p>
+                            <p class="text-[10px] text-gray-500">All Emp</p>
+                        </button>
+                        <button onclick="filterList('in')" class="border rounded p-2 bg-white cursor-pointer hover:bg-gray-50">
+                            <p id="countIn" class="text-lg font-bold text-green-500">0</p>
+                            <p class="text-[10px] text-gray-500">Total In</p>
+                        </button>
+                        <button onclick="filterList('out')" class="border rounded p-2 bg-white cursor-pointer hover:bg-gray-50">
+                            <p id="countOut" class="text-lg font-bold text-orange-500">0</p>
+                            <p class="text-[10px] text-gray-500">Total Out</p>
+                        </button>
+                        <button onclick="filterList('late')" class="border rounded p-2 bg-white cursor-pointer hover:bg-gray-50">
+                            <p id="countLate" class="text-lg font-bold text-red-500">0</p>
+                            <p class="text-[10px] text-gray-500">Late</p>
+                        </button>
+                        <button onclick="filterList('missing')" class="border rounded p-2 bg-white cursor-pointer hover:bg-gray-50">
+                            <p id="countMissing" class="text-lg font-bold text-gray-500">0</p>
+                            <p class="text-[10px] text-gray-500">Not Yet In</p>
+                        </button>
                     </div>
-                    <select id="eDept" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                        <option value="General">General Department</option>
-                        <option value="Sales">Sales</option>
-                        <option value="Support">Support</option>
-                    </select>
-                    <select id="eTiming" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                        <option value="9:30 TO 7">9:30 TO 7 (Fixed)</option>
-                        <option value="Flexi Shift">Flexi Shift (Dual Timings)</option>
-                    </select>
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                        <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm bg-gray-50">
-                        <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm bg-gray-50">
+
+                    <div class="relative mb-4">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="searchInput" onkeyup="searchEmployees()" placeholder="Search by name or code" class="w-full pl-10 p-2 border rounded-lg bg-white outline-none focus:border-blue-500 text-sm">
                     </div>
-                    <button onclick="saveEmployee()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold shadow active:scale-95 transition">Save Employee</button>
+
+                    <h2 class="text-sm font-bold text-gray-700 mb-2">Today</h2>
+                    <div id="employeeList" class="flex flex-col gap-3"></div>
+
+                    <div class="mt-6 flex justify-center">
+                        <button onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition">
+                            + Add Employee
+                        </button>
+                    </div>
+
+                    <!-- Add Employee Form -->
+                    <div id="addEmployeeForm" class="hidden mt-4 bg-white p-4 rounded-lg border shadow-sm">
+                        <h3 class="font-bold mb-3 border-b pb-2">New Employee Details</h3>
+                        <input type="text" id="eName" placeholder="Name" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                        <input type="text" id="eCode" placeholder="EMP Code" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <input type="text" id="eLogin" placeholder="Login ID" class="p-2 border rounded text-sm bg-gray-50">
+                            <input type="text" id="ePass" placeholder="Password" class="p-2 border rounded text-sm bg-gray-50">
+                        </div>
+                        
+                        <!-- Updated Department Dropdown -->
+                        <select id="eDept" onchange="handleDeptChange()" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                            <option value="" disabled selected>Select Department...</option>
+                            <option value="General">General</option>
+                            <option value="Service">Service</option>
+                            <option value="Engineer">Engineer</option>
+                            <option value="CCO">CCO</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Captain">Captain</option>
+                            <option value="Head Chef">Head Chef</option>
+                            <option value="Assistant Chef">Assistant Chef</option>
+                            <option value="Kitchen Supervisor">Kitchen Supervisor</option>
+                            <option value="Kitchen Helper">Kitchen Helper</option>
+                            <option value="Dish Washer">Dish Washer</option>
+                            <option value="Waiter">Waiter</option>
+                            <option value="Other">Other (Specify)</option>
+                        </select>
+                        <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+
+                        <select id="eTiming" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                            <option value="9:30 TO 7">9:30 TO 7 (Fixed)</option>
+                            <option value="Flexi Shift">Flexi Shift (Dual Timings)</option>
+                        </select>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm bg-gray-50">
+                            <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm bg-gray-50">
+                        </div>
+                        <button onclick="saveEmployee()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold shadow active:scale-95 transition">Save Employee</button>
+                    </div>
+                </div>
+
+                <!-- ================= TAB 2: REPORTS ================= -->
+                <div id="tab-reports" class="hidden flex-col bg-white min-h-full">
+                    <div class="flex flex-col w-full divide-y divide-gray-100">
+                        <button onclick="exportCSV('All In One')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="fas fa-map-marker-alt text-gray-400 w-5"></i> All In One Time Tracking Report
+                        </button>
+                        <button onclick="exportCSV('Daily Selfie')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="fas fa-user-circle text-gray-400 w-5"></i> Daily Selfie Punch Report
+                        </button>
+                        <button onclick="exportCSV('Daily Time')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="far fa-calendar-day text-gray-400 w-5"></i> Daily Time Tracking Report
+                        </button>
+                        <button onclick="exportCSV('Monthly Time')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="far fa-calendar-alt text-gray-400 w-5"></i> Monthly Time Tracking Report
+                        </button>
+                        <button onclick="exportCSV('Punch Log')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="fas fa-file-invoice text-gray-400 w-5"></i> Punch Log Report
+                        </button>
+                        <button onclick="exportCSV('Employee Master')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="far fa-address-card text-gray-400 w-5"></i> Employee Master Report
+                        </button>
+                    </div>
+                    
+                    <div class="p-4 mt-2">
+                        <div class="bg-blue-50 border border-blue-100 p-4 rounded flex items-center gap-3 cursor-pointer hover:bg-blue-100" onclick="alert('Downloading Sample Report Format...')">
+                            <i class="fas fa-cloud-download-alt text-blue-500 text-lg"></i>
+                            <span class="text-sm font-bold text-gray-800">Click here to download sample reports.</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 flex justify-center pb-8">
+                        <button onclick="alert('Opening Generated Reports Archive...')" class="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
+                            <i class="fas fa-cloud-download-alt"></i> Generated Reports
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ================= TAB 3: SETTINGS ================= -->
+                <div id="tab-settings" class="hidden flex-col bg-white min-h-full">
+                    
+                    <!-- Organization Management -->
+                    <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        Organization Management
+                    </div>
+                    <div class="flex flex-col w-full divide-y divide-gray-100">
+                        <button onclick="alert('Navigating to Organization Detail...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="far fa-building text-gray-400 w-5"></i> Organization Detail</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="switchTab('dashboard')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-users text-gray-400 w-5"></i> Employees</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="alert('Opening Device Configuration...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-wrench text-gray-400 w-5"></i> Device Configuration</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="alert('Opening Departments / Branches...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-code-branch text-gray-400 w-5"></i> Departments / Branches</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="alert('Opening Work Timings...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="far fa-clock text-gray-400 w-5"></i> Work Timings</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="alert('Opening Calendar...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="far fa-calendar-alt text-gray-400 w-5"></i> Calendar</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="alert('Opening Holidays...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-mug-hot text-gray-400 w-5"></i> Holidays</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="alert('Opening Plans & Subscription...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-file-invoice-dollar text-gray-400 w-5"></i> Plans & Subscription</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                    </div>
+
+                    <!-- Others -->
+                    <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        Others
+                    </div>
+                    <div class="flex flex-col w-full divide-y divide-gray-100">
+                        <button onclick="alert('Change Language...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-language text-gray-400 w-5"></i> Languages</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button onclick="alert('Change Password Screen...')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-lock text-gray-400 w-5"></i> Change Password</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                    </div>
                 </div>
 
             </div>
 
             <!-- ================= BOTTOM NAVIGATION ================= -->
             <div class="absolute bottom-0 w-full bg-white border-t flex justify-around p-3 text-gray-500 text-xs shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-                <!-- Punch is removed, only 3 tabs remain -->
-                <button class="flex flex-col items-center text-blue-600 font-bold">
+                <button id="nav-dashboard" onclick="switchTab('dashboard')" class="flex flex-col items-center text-blue-600 font-bold transition">
                     <i class="fas fa-th-large text-lg mb-1"></i> Dashboard
                 </button>
-                <button class="flex flex-col items-center hover:text-blue-600 transition">
+                <button id="nav-reports" onclick="switchTab('reports')" class="flex flex-col items-center hover:text-blue-600 transition">
                     <i class="fas fa-file-alt text-lg mb-1"></i> Reports
                 </button>
-                <button class="flex flex-col items-center hover:text-blue-600 transition">
+                <button id="nav-settings" onclick="switchTab('settings')" class="flex flex-col items-center hover:text-blue-600 transition">
                     <i class="fas fa-cog text-lg mb-1"></i> Settings
                 </button>
             </div>
@@ -136,12 +244,12 @@
         
         let allEmployees = [];
         let currentAdminId = null;
+        let firmNameStore = 'Admin Portal';
 
-        // --- AUTHENTICATION LOGIC ---
+        // --- AUTHENTICATION ---
         async function adminLogin() {
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
-            
             if(!email || !password) return alert("Please enter credentials.");
 
             const { data, error } = await supabaseClient.from('admins').select('*')
@@ -149,42 +257,74 @@
             
             if (error || !data) return alert("Invalid Admin ID or Password");
             
-            // Set session data
             currentAdminId = data.id;
-            document.getElementById('firmNameDisplay').innerText = data.firm_name || 'Admin Portal';
+            firmNameStore = data.firm_name || 'Admin Portal';
+            document.getElementById('headerTitle').innerText = firmNameStore;
             
-            // Switch UI views
             document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('dashboardView').classList.remove('hidden');
-            document.getElementById('dashboardView').classList.add('flex');
+            document.getElementById('mainAppView').classList.remove('hidden');
+            document.getElementById('mainAppView').classList.add('flex');
             
             loadDashboard();
         }
 
         function logout() {
             currentAdminId = null;
-            allEmployees = [];
-            
-            // Clear inputs
             document.getElementById('adminEmail').value = '';
             document.getElementById('adminPassword').value = '';
             
-            // Reset UI
-            document.getElementById('dashboardView').classList.remove('flex');
-            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('mainAppView').classList.remove('flex');
+            document.getElementById('mainAppView').classList.add('hidden');
             document.getElementById('loginView').classList.remove('hidden');
-            document.getElementById('employeeList').innerHTML = '';
+            switchTab('dashboard'); // reset view for next login
+        }
+
+        // --- NAVIGATION LOGIC ---
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.getElementById('tab-dashboard').classList.add('hidden');
+            document.getElementById('tab-dashboard').classList.remove('flex');
+            document.getElementById('tab-reports').classList.add('hidden');
+            document.getElementById('tab-reports').classList.remove('flex');
+            document.getElementById('tab-settings').classList.add('hidden');
+            document.getElementById('tab-settings').classList.remove('flex');
+
+            // Reset Nav Colors
+            document.getElementById('nav-dashboard').className = "flex flex-col items-center hover:text-blue-600 transition text-gray-500";
+            document.getElementById('nav-reports').className = "flex flex-col items-center hover:text-blue-600 transition text-gray-500";
+            document.getElementById('nav-settings').className = "flex flex-col items-center hover:text-blue-600 transition text-gray-500";
+
+            // Activate Target Tab & Set Header
+            const backBtn = document.getElementById('backBtn');
+            const headerTitle = document.getElementById('headerTitle');
+
+            if(tabName === 'dashboard') {
+                document.getElementById('tab-dashboard').classList.remove('hidden');
+                document.getElementById('tab-dashboard').classList.add('flex');
+                document.getElementById('nav-dashboard').classList.add('text-blue-600', 'font-bold');
+                headerTitle.innerText = firmNameStore;
+                backBtn.classList.add('hidden');
+            } else if(tabName === 'reports') {
+                document.getElementById('tab-reports').classList.remove('hidden');
+                document.getElementById('tab-reports').classList.add('flex');
+                document.getElementById('nav-reports').classList.add('text-blue-600', 'font-bold');
+                headerTitle.innerText = "Reports";
+                backBtn.classList.remove('hidden');
+            } else if(tabName === 'settings') {
+                document.getElementById('tab-settings').classList.remove('hidden');
+                document.getElementById('tab-settings').classList.add('flex');
+                document.getElementById('nav-settings').classList.add('text-blue-600', 'font-bold');
+                headerTitle.innerText = "Settings";
+                backBtn.classList.remove('hidden');
+            }
         }
 
         // --- DASHBOARD LOGIC ---
         async function loadDashboard() {
             const today = new Date().toISOString().split('T')[0];
-            
-            // Fetch employees for THIS specific firm admin
             const { data: employees } = await supabaseClient.from('employees').select('*').eq('admin_id', currentAdminId);
             if(!employees) return;
 
-            // Fetch today's attendance for those employees
             const { data: attendance } = await supabaseClient.from('attendance').select('*').eq('date', today);
             
             allEmployees = employees.map(emp => {
@@ -210,9 +350,7 @@
             document.getElementById('countIn').innerText = allEmployees.filter(e => e.status === 'in').length;
             document.getElementById('countOut').innerText = allEmployees.filter(e => e.status === 'out').length;
             document.getElementById('countMissing').innerText = allEmployees.filter(e => e.status === 'missing').length;
-            
-            // Temporary Late calculation placeholder
-            document.getElementById('countLate').innerText = "0"; 
+            document.getElementById('countLate').innerText = "0"; // Advanced feature placeholder
         }
 
         function renderList(list) {
@@ -230,7 +368,7 @@
                         </div>
                         <div>
                             <p class="font-bold text-gray-800 text-sm">${emp.name}</p>
-                            <p class="text-[11px] text-gray-500">Code: ${emp.emp_code || '-'} | Hrs: ${emp.totalHrs.toFixed(2)}</p>
+                            <p class="text-[11px] text-gray-500">${emp.department || 'General'} | Hrs: ${emp.totalHrs.toFixed(2)}</p>
                         </div>
                     </div>
                     <div>
@@ -261,8 +399,24 @@
             document.getElementById('addEmployeeForm').classList.toggle('hidden');
         }
 
+        function handleDeptChange() {
+            const select = document.getElementById('eDept');
+            const otherInput = document.getElementById('eDeptOther');
+            if(select.value === 'Other') {
+                otherInput.classList.remove('hidden');
+            } else {
+                otherInput.classList.add('hidden');
+            }
+        }
+
         async function saveEmployee() {
             if (!currentAdminId) return alert("Session expired.");
+
+            let finalDept = document.getElementById('eDept').value;
+            if(finalDept === 'Other') {
+                finalDept = document.getElementById('eDeptOther').value;
+                if(!finalDept) return alert("Please specify the custom department.");
+            }
 
             const empData = {
                 admin_id: currentAdminId,
@@ -270,7 +424,7 @@
                 emp_code: document.getElementById('eCode').value,
                 login_id: document.getElementById('eLogin').value,
                 password: document.getElementById('ePass').value,
-                department: document.getElementById('eDept').value,
+                department: finalDept || 'General',
                 work_timing: document.getElementById('eTiming').value,
                 monthly_salary: document.getElementById('eSalary').value || 0,
                 overtime_rate: document.getElementById('eRate').value || 0
@@ -287,10 +441,32 @@
                 else alert("Error: " + error.message);
             } else {
                 alert("Employee Saved Successfully!");
-                toggleAddForm(); // Hide form
-                document.querySelectorAll('#addEmployeeForm input').forEach(i => i.value = ''); // Clear inputs
-                loadDashboard(); // Refresh list
+                toggleAddForm(); 
+                document.querySelectorAll('#addEmployeeForm input').forEach(i => i.value = ''); 
+                document.getElementById('eDept').value = '';
+                document.getElementById('eDeptOther').classList.add('hidden');
+                loadDashboard(); 
             }
+        }
+
+        // --- REPORTS LOGIC ---
+        function exportCSV(reportType = "General") {
+            if (allEmployees.length === 0) return alert("No data available to export.");
+            
+            alert(`Generating ${reportType} Report... downloading CSV.`);
+
+            let csvContent = "data:text/csv;charset=utf-8,Name,EMP Code,Department,Status,Total Hours,Estimated Salary\n";
+            allEmployees.forEach(e => {
+                const estSalary = parseFloat(e.monthly_salary || 0) + (e.totalHrs * parseFloat(e.overtime_rate || 0));
+                csvContent += `${e.name},${e.emp_code},${e.department},${e.status},${e.totalHrs},₹${estSalary}\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${reportType.replace(/\s+/g, '_')}_Report.csv`);
+            document.body.appendChild(link);
+            link.click();
         }
     </script>
 </body>
