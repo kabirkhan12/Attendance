@@ -3,238 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin Portal</title>
+    <title>InOut Admin</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-gray-100 flex justify-center h-screen">
-    <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col">
+<body class="bg-gray-50 flex justify-center h-screen">
+    <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col relative">
         
-        <!-- LOGIN VIEW -->
-        <div id="loginView" class="p-6 flex flex-col justify-center h-full">
-            <a href="index.html" class="text-blue-500 mb-6">&larr; Back to Home</a>
-            <h1 class="text-2xl font-bold mb-6">Admin Login</h1>
-            <input type="text" id="adminEmail" placeholder="Admin ID (e.g. gsm_admin)" class="p-3 border rounded mb-3 bg-gray-50">
-            <input type="password" id="adminPassword" placeholder="Password" class="p-3 border rounded mb-6 bg-gray-50">
-            <button onclick="adminLogin()" class="bg-gray-800 text-white p-3 rounded font-bold">Login</button>
-        </div>
-
-        <!-- DASHBOARD VIEW (Hidden initially) -->
-        <div id="dashboardView" class="hidden flex-col h-full overflow-hidden">
-            <!-- Header -->
-            <div class="p-4 bg-white border-b flex justify-between items-center shadow-sm z-10">
-                <div>
-                    <h1 class="text-xl font-bold text-gray-800" id="firmNameDisplay">Dashboard</h1>
-                    <p class="text-xs text-gray-500">Firm Admin Portal</p>
-                </div>
-                <button onclick="logout()" class="text-red-500 font-bold text-sm bg-red-50 px-3 py-1 rounded">Logout</button>
-            </div>
-
-            <!-- Tab Navigation -->
-            <div class="flex border-b bg-gray-50 z-10">
-                <button id="tabBtn-employees" onclick="switchTab('employees')" class="flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600 text-sm">Manage Employees</button>
-                <button id="tabBtn-attendance" onclick="switchTab('attendance')" class="flex-1 py-3 font-bold text-gray-500 text-sm">Attendance Logs</button>
-            </div>
-
-            <!-- Scrollable Content Area -->
-            <div class="p-4 overflow-y-auto flex-grow">
-                
-                <!-- 1. EMPLOYEES SECTION -->
-                <div id="section-employees" class="flex flex-col">
-                    <!-- Add Employee Form -->
-                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
-                        <h2 class="font-bold mb-3 text-blue-800">Add New Employee</h2>
-                        <input type="text" id="eName" placeholder="Full Name" class="w-full p-2 border rounded mb-2 text-sm bg-white">
-                        <input type="text" id="eLoginId" placeholder="Create Login ID" class="w-full p-2 border rounded mb-2 text-sm bg-white">
-                        <input type="text" id="ePassword" placeholder="Create Password" class="w-full p-2 border rounded mb-2 text-sm bg-white">
-                        <div class="flex gap-2 mb-3">
-                            <input type="tel" id="eMobile" placeholder="Mobile" class="w-1/2 p-2 border rounded text-sm bg-white">
-                            <input type="number" id="eSalary" placeholder="Salary" class="w-1/4 p-2 border rounded text-sm bg-white">
-                            <input type="number" id="eHours" placeholder="Hours" class="w-1/4 p-2 border rounded text-sm bg-white">
-                        </div>
-                        <button onclick="addEmployee()" class="w-full bg-blue-600 text-white p-2 rounded font-bold text-sm shadow active:scale-95 transition">Create Account</button>
-                    </div>
-
-                    <h2 class="font-bold mb-3 text-gray-700 border-b pb-2">Your Employees</h2>
-                    <div id="employeeList" class="flex flex-col gap-3 pb-6"></div>
-                </div>
-
-                <!-- 2. ATTENDANCE SECTION (Hidden initially) -->
-                <div id="section-attendance" class="hidden flex-col">
-                    <div class="flex justify-between items-center mb-4 bg-white p-3 rounded border shadow-sm">
-                        <h2 class="font-bold text-gray-700">Select Date:</h2>
-                        <input type="date" id="attendanceDate" class="p-2 border rounded text-sm bg-gray-50 font-medium" onchange="loadAttendance()">
-                    </div>
-                    
-                    <div id="attendanceList" class="flex flex-col gap-3 pb-6"></div>
-                </div>
-
+        <!-- HEADER -->
+        <div class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-10">
+            <h1 class="text-xl font-bold">InOut</h1>
+            <div class="flex gap-4">
+                <button onclick="exportCSV()"><i class="fas fa-file-csv text-xl"></i></button>
+                <button onclick="logout()"><i class="fas fa-sign-out-alt text-xl"></i></button>
             </div>
         </div>
 
+        <!-- MAIN SCROLLABLE CONTENT -->
+        <div class="flex-grow overflow-y-auto p-4 pb-20">
+            
+            <!-- Employee Summary Dashboard -->
+            <h2 class="text-sm font-bold text-gray-700 mb-2">Employee Summary</h2>
+            <div class="grid grid-cols-5 gap-2 mb-4 text-center">
+                <button onclick="filterList('all')" class="border rounded p-2 bg-blue-50 border-blue-200 cursor-pointer hover:bg-blue-100">
+                    <p id="countAll" class="text-lg font-bold text-blue-600">0</p>
+                    <p class="text-[10px] text-gray-500">All Emp</p>
+                </button>
+                <button onclick="filterList('in')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
+                    <p id="countIn" class="text-lg font-bold text-green-500">0</p>
+                    <p class="text-[10px] text-gray-500">Total In</p>
+                </button>
+                <button onclick="filterList('out')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
+                    <p id="countOut" class="text-lg font-bold text-orange-500">0</p>
+                    <p class="text-[10px] text-gray-500">Total Out</p>
+                </button>
+                <button onclick="filterList('late')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
+                    <p id="countLate" class="text-lg font-bold text-red-500">0</p>
+                    <p class="text-[10px] text-gray-500">Late</p>
+                </button>
+                <button onclick="filterList('missing')" class="border rounded p-2 cursor-pointer hover:bg-gray-50">
+                    <p id="countMissing" class="text-lg font-bold text-gray-500">0</p>
+                    <p class="text-[10px] text-gray-500">Not Yet In</p>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="relative mb-4">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" id="searchInput" onkeyup="searchEmployees()" placeholder="Search by name or code" class="w-full pl-10 p-2 border rounded-lg bg-gray-50 outline-none focus:border-blue-500 text-sm">
+            </div>
+
+            <!-- Employee List -->
+            <h2 class="text-sm font-bold text-gray-700 mb-2">Today</h2>
+            <div id="employeeList" class="flex flex-col gap-3">
+                <!-- Javascript will populate this -->
+            </div>
+
+            <!-- Add Employee Button -->
+            <div class="mt-6 flex justify-center">
+                <button onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition">
+                    + Add Employee
+                </button>
+            </div>
+
+            <!-- Hidden Add Employee Form -->
+            <div id="addEmployeeForm" class="hidden mt-4 bg-white p-4 rounded-lg border shadow-sm">
+                <h3 class="font-bold mb-3 border-b pb-2">New Employee Details</h3>
+                <input type="text" id="eName" placeholder="Name" class="w-full p-2 border rounded mb-2 text-sm">
+                <input type="text" id="eCode" placeholder="EMP Code" class="w-full p-2 border rounded mb-2 text-sm">
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <input type="text" id="eLogin" placeholder="Login ID" class="p-2 border rounded text-sm">
+                    <input type="text" id="ePass" placeholder="Password" class="p-2 border rounded text-sm">
+                </div>
+                <select id="eDept" class="w-full p-2 border rounded mb-2 text-sm">
+                    <option value="General">General Department</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Support">Support</option>
+                </select>
+                <select id="eTiming" class="w-full p-2 border rounded mb-2 text-sm">
+                    <option value="9:30 TO 7">9:30 TO 7 (Fixed)</option>
+                    <option value="Flexi Shift">Flexi Shift (Dual Timings)</option>
+                </select>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm">
+                    <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm">
+                </div>
+                <button onclick="saveEmployee()" class="w-full bg-green-600 text-white p-2 rounded font-bold text-sm">Save Employee</button>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <div class="absolute bottom-0 w-full bg-white border-t flex justify-around p-3 text-gray-500 text-xs">
+            <button class="flex flex-col items-center text-blue-600 font-bold">
+                <i class="fas fa-th-large text-lg mb-1"></i> Dashboard
+            </button>
+            <button class="flex flex-col items-center hover:text-blue-600">
+                <i class="fas fa-fingerprint text-lg mb-1"></i> Punch
+            </button>
+            <button class="flex flex-col items-center hover:text-blue-600">
+                <i class="fas fa-file-alt text-lg mb-1"></i> Reports
+            </button>
+            <button class="flex flex-col items-center hover:text-blue-600">
+                <i class="fas fa-cog text-lg mb-1"></i> Settings
+            </button>
+        </div>
     </div>
 
     <script>
-        const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
-        const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
+        const supabaseUrl = 'YOUR_URL_HERE';
+        const supabaseKey = 'YOUR_KEY_HERE';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        let allEmployees = [];
+        // Hardcoded admin ID for demonstration; integrate your login logic here
+        const currentAdminId = 'YOUR_ADMIN_UUID'; 
 
-        let currentAdminId = null;
-
-        // Set today's date in the date picker by default
-        document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
-
-        async function adminLogin() {
-            const email = document.getElementById('adminEmail').value;
-            const password = document.getElementById('adminPassword').value;
+        async function loadDashboard() {
+            const today = new Date().toISOString().split('T')[0];
             
-            const { data, error } = await supabaseClient.from('admins').select('*')
-                .eq('email', email).eq('password', password).single();
+            // Fetch employees
+            const { data: employees } = await supabaseClient.from('employees').select('*').eq('admin_id', currentAdminId);
             
-            if (error || !data) return alert("Invalid Admin ID or Password");
+            // Fetch today's attendance
+            const { data: attendance } = await supabaseClient.from('attendance').select('*').eq('date', today);
             
-            currentAdminId = data.id;
-            document.getElementById('firmNameDisplay').innerText = data.firm_name || 'Dashboard';
-            
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('dashboardView').classList.remove('hidden');
-            document.getElementById('dashboardView').classList.add('flex');
-            
-            loadEmployees();
-            loadAttendance();
-        }
-
-        // --- TAB LOGIC ---
-        function switchTab(tabName) {
-            // Reset buttons
-            document.getElementById('tabBtn-employees').className = "flex-1 py-3 font-bold text-gray-500 text-sm";
-            document.getElementById('tabBtn-attendance').className = "flex-1 py-3 font-bold text-gray-500 text-sm";
-            
-            // Hide all sections
-            document.getElementById('section-employees').classList.add('hidden');
-            document.getElementById('section-attendance').classList.add('hidden');
-            
-            // Activate selected
-            document.getElementById(`tabBtn-${tabName}`).className = "flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600 text-sm";
-            document.getElementById(`section-${tabName}`).classList.remove('hidden');
-            document.getElementById(`section-${tabName}`).classList.add('flex');
-            
-            if (tabName === 'employees') loadEmployees();
-            if (tabName === 'attendance') loadAttendance();
-        }
-
-        // --- EMPLOYEE LOGIC ---
-        async function addEmployee() {
-            if (!currentAdminId) return alert("Session expired.");
-
-            const empData = {
-                admin_id: currentAdminId,
-                name: document.getElementById('eName').value,
-                login_id: document.getElementById('eLoginId').value,
-                password: document.getElementById('ePassword').value,
-                mobile_no: document.getElementById('eMobile').value,
-                monthly_salary: document.getElementById('eSalary').value || 0,
-                working_hours: document.getElementById('eHours').value || 0
-            };
-
-            if(!empData.name || !empData.login_id || !empData.password) {
-                return alert("Name, Login ID, and Password are required!");
-            }
-
-            const { error } = await supabaseClient.from('employees').insert([empData]);
-            
-            if (error) {
-                if (error.code === '23505') alert("This Login ID is already taken.");
-                else alert("Error: " + error.message);
-            } else {
-                alert("Employee created!");
-                document.getElementById('eName').value = '';
-                document.getElementById('eLoginId').value = '';
-                document.getElementById('ePassword').value = '';
-                loadEmployees();
-            }
-        }
-
-        async function loadEmployees() {
-            if (!currentAdminId) return;
-
-            const { data, error } = await supabaseClient.from('employees')
-                .select('*').eq('admin_id', currentAdminId).order('created_at', { ascending: false });
+            allEmployees = employees.map(emp => {
+                const record = attendance?.find(a => a.employee_id === emp.id);
+                let status = 'missing';
+                let totalHrs = 0;
                 
-            if (error) return;
+                if (record && record.punches.length > 0) {
+                    const lastPunch = record.punches[record.punches.length - 1];
+                    status = lastPunch.out ? 'out' : 'in';
+                    totalHrs = record.total_hours;
+                }
+                
+                return { ...emp, status, totalHrs };
+            });
             
-            const list = document.getElementById('employeeList');
-            if(data.length === 0) return list.innerHTML = `<p class="text-sm text-gray-500 text-center mt-4">No employees yet.</p>`;
+            updateStats();
+            renderList(allEmployees);
+        }
 
-            list.innerHTML = data.map(emp => `
-                <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm text-sm">
-                    <div class="flex justify-between items-start mb-1">
-                        <p class="font-bold text-gray-800 text-base">${emp.name}</p>
-                        <span class="text-xs px-2 py-1 rounded-full ${emp.face_descriptor ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                            ${emp.face_descriptor ? 'Face Ready' : 'No Face'}
-                        </span>
+        function updateStats() {
+            document.getElementById('countAll').innerText = allEmployees.length;
+            document.getElementById('countIn').innerText = allEmployees.filter(e => e.status === 'in').length;
+            document.getElementById('countOut').innerText = allEmployees.filter(e => e.status === 'out').length;
+            document.getElementById('countMissing').innerText = allEmployees.filter(e => e.status === 'missing').length;
+            // Add late calculation logic here based on work_timing vs first punch
+        }
+
+        function renderList(list) {
+            const container = document.getElementById('employeeList');
+            container.innerHTML = list.map(emp => `
+                <div class="bg-white border rounded-lg p-3 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+                            ${emp.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="font-bold text-gray-800 text-sm">${emp.name}</p>
+                            <p class="text-[11px] text-gray-500">EMP Code: ${emp.emp_code || '-'} | Hrs: ${emp.totalHrs.toFixed(2)}</p>
+                        </div>
                     </div>
-                    <p class="text-gray-600 mb-1">Login: <span class="font-mono font-bold text-black">${emp.login_id}</span> | Pass: <span class="font-mono font-bold text-black">${emp.password}</span></p>
-                </div>
-            `).join('');
-        }
-
-        // --- ATTENDANCE LOGIC ---
-        function formatTime(isoString) {
-            if (!isoString) return '<span class="text-gray-400">Not recorded</span>';
-            const date = new Date(isoString);
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        async function loadAttendance() {
-            if (!currentAdminId) return;
-            
-            const selectedDate = document.getElementById('attendanceDate').value;
-            const list = document.getElementById('attendanceList');
-            list.innerHTML = `<p class="text-sm text-gray-500 text-center mt-4">Loading...</p>`;
-
-            // Fetch attendance AND join the related employee data.
-            // The !inner ensures we ONLY get attendance records for this specific firm's employees.
-            const { data, error } = await supabaseClient.from('attendance')
-                .select(`
-                    id, date, punch_in, punch_out,
-                    employees!inner ( name, admin_id )
-                `)
-                .eq('employees.admin_id', currentAdminId)
-                .eq('date', selectedDate)
-                .order('punch_in', { ascending: false });
-
-            if (error) {
-                console.error(error);
-                list.innerHTML = `<p class="text-sm text-red-500 text-center mt-4">Error loading data.</p>`;
-                return;
-            }
-
-            if (data.length === 0) {
-                list.innerHTML = `<p class="text-sm text-gray-500 text-center mt-8">No attendance records found for this date.</p>`;
-                return;
-            }
-
-            list.innerHTML = data.map(record => `
-                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm text-sm flex flex-col gap-2">
-                    <p class="font-bold text-lg text-gray-800">${record.employees.name}</p>
-                    
-                    <div class="flex justify-between bg-gray-50 p-2 rounded border border-gray-100">
-                        <div class="flex flex-col">
-                            <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Punch In</span>
-                            <span class="text-green-600 font-medium text-base">${formatTime(record.punch_in)}</span>
-                        </div>
-                        <div class="flex flex-col text-right">
-                            <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Punch Out</span>
-                            <span class="text-red-600 font-medium text-base">${formatTime(record.punch_out)}</span>
-                        </div>
+                    <div>
+                        ${emp.status === 'missing' 
+                            ? `<span class="bg-purple-100 text-purple-600 text-[10px] px-2 py-1 rounded font-bold">Not Yet In</span>` 
+                            : `<span class="${emp.status === 'in' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'} text-[10px] px-2 py-1 rounded font-bold uppercase">${emp.status}</span>`
+                        }
                     </div>
                 </div>
             `).join('');
         }
 
-        function logout() { location.reload(); }
+        function searchEmployees() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allEmployees.filter(e => 
+                e.name.toLowerCase().includes(term) || 
+                (e.emp_code && e.emp_code.toLowerCase().includes(term))
+            );
+            renderList(filtered);
+        }
+
+        function filterList(status) {
+            if (status === 'all') renderList(allEmployees);
+            else renderList(allEmployees.filter(e => e.status === status));
+        }
+
+        async function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Name,EMP Code,Department,Status,Total Hours,Estimated Salary\n";
+            allEmployees.forEach(e => {
+                // Basic salary calculation: Base + (Total hours * OT rate)
+                const estSalary = parseFloat(e.monthly_salary || 0) + (e.totalHrs * parseFloat(e.overtime_rate || 0));
+                csvContent += `${e.name},${e.emp_code},${e.department},${e.status},${e.totalHrs},₹${estSalary}\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "attendance_report.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        function toggleAddForm() {
+            document.getElementById('addEmployeeForm').classList.toggle('hidden');
+        }
+
+        // Call on load
+        // loadDashboard(); 
     </script>
 </body>
 </html>
