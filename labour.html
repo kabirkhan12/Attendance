@@ -6,7 +6,8 @@
     <title>Labour Attendance</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Face API script would go here: <script src="face-api.min.js"></script> -->
+    <!-- 1. Added face-api.js library -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body class="bg-gray-100 flex justify-center h-screen bg-black">
     <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col relative">
@@ -22,7 +23,7 @@
         <div class="flex-grow bg-black relative flex items-center justify-center overflow-hidden">
             <video id="video" autoplay muted playsinline class="object-cover w-full h-full"></video>
             <div class="absolute inset-0 border-4 border-dashed border-white opacity-50 m-12 rounded-lg pointer-events-none"></div>
-            <p id="statusText" class="absolute bottom-4 text-white bg-black bg-opacity-50 px-4 py-2 rounded">Position face in frame...</p>
+            <p id="statusText" class="absolute bottom-4 text-white bg-black bg-opacity-75 px-4 py-2 rounded font-semibold text-center w-3/4">Initializing...</p>
         </div>
 
         <!-- Controls -->
@@ -33,14 +34,38 @@
     </div>
 
     <script>
+        // Supabase Setup
         const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
         const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
         const supabase = supabaseCreateClient.createClient(supabaseUrl, supabaseKey);
 
         const video = document.getElementById('video');
         const statusText = document.getElementById('statusText');
+        
+        let faceMatcher = null;
 
-        // Start Camera
+        // 2. Load the models from your GitHub /models folder
+        async function loadModels() {
+            statusText.innerText = "Loading AI Models...";
+            const MODEL_URL = './models'; // Points to the folder you created in GitHub
+            
+            try {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                ]);
+                
+                statusText.innerText = "Models Loaded. Starting Camera...";
+                await startVideo();
+                await fetchRegisteredFaces();
+            } catch (err) {
+                statusText.innerText = "Error loading models. Check folder path.";
+                console.error(err);
+            }
+        }
+
+        // 3. Start the Camera
         async function startVideo() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -49,42 +74,98 @@
                 statusText.innerText = "Camera Access Denied!";
             }
         }
-        startVideo();
 
+        // 4. Fetch stored biometrics from Supabase to prepare for matching
+        async function fetchRegisteredFaces() {
+            statusText.innerText = "Loading Labour Data...";
+            const firmId = localStorage.getItem('firm_id');
+            
+            if(!firmId) {
+                statusText.innerText = "Error: Firm ID not found. Go to home page.";
+                return;
+            }
+
+            const { data: labours, error } = await supabase.from('labours').select('*').eq('firm_id', firmId);
+            
+            if (error) {
+                statusText.innerText = "Error loading data.";
+                return;
+            }
+
+            // Convert stored text back into Float32Arrays for the AI to read
+            const labeledDescriptors = [];
+            for (let i = 0; i < labours.length; i++) {
+                if (labours[i].face_descriptor && labours[i].face_descriptor !== 'pending_enrollment') {
+                    const descArray = new Float32Array(JSON.parse(labours[i].face_descriptor));
+                    // We use the labour's UUID as the label to identify them later
+                    labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(labours[i].id, [descArray]));
+                }
+            }
+
+            if(labeledDescriptors.length > 0) {
+                // 0.6 is the standard threshold for matching accuracy
+                faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6); 
+                statusText.innerText = "Ready! Position face in frame.";
+            } else {
+                statusText.innerText = "No faces registered yet.";
+            }
+        }
+
+        // 5. The actual Punch In/Out logic
         async function recordAttendance(type) {
+            if(!faceMatcher) return alert("No face data loaded. Please register labours in the Admin portal first.");
+            
             statusText.innerText = "Scanning Face...";
             
-            // 1. HERE is where you will call faceapi.detectSingleFace(video)
-            // 2. You will compare the captured face_descriptor against descriptors fetched from the 'labours' table.
+            // Capture and analyze the face currently on screen
+            const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
             
-            // SIMULATION OF A SUCCESSFUL MATCH:
-            setTimeout(async () => {
-                const matchedLabourId = prompt("Simulation: Face recognized. Enter Labour ID to test database insert:");
-                if (!matchedLabourId) return;
+            if (!detection) {
+                statusText.innerText = "Ready! Position face in frame.";
+                return alert("No face detected. Please look directly at the camera and ensure good lighting.");
+            }
 
-                const now = new Date().toISOString();
-                const dateOnly = new Date().toISOString().split('T')[0];
+            // Compare the live face against our Supabase database
+            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+            
+            if (bestMatch.label === 'unknown') {
+                statusText.innerText = "Ready! Position face in frame.";
+                return alert("Face not recognized! Please try again.");
+            }
 
-                if (type === 'in') {
-                    // Check if already punched in
-                    const { data, error } = await supabase.from('attendance').insert([{
-                        labour_id: matchedLabourId, date: dateOnly, punch_in: now
-                    }]);
-                    if (error) alert("Error punching in: " + error.message);
-                    else alert("Punch IN Successful at " + new Date().toLocaleTimeString());
+            const matchedLabourId = bestMatch.label; // This is the labour's Supabase UUID
+            const now = new Date().toISOString();
+            const dateOnly = new Date().toISOString().split('T')[0];
+
+            if (type === 'in') {
+                // Record Punch In
+                const { error } = await supabase.from('attendance').insert([{
+                    labour_id: matchedLabourId, date: dateOnly, punch_in: now
+                }]);
+                
+                if (error) {
+                    // Assuming error 23505 is a unique constraint violation (already punched in today)
+                    if(error.code === '23505') alert("Already punched in today!");
+                    else alert("Error punching in: " + error.message);
                 } else {
-                    // Update existing row for punch out
-                    const { data, error } = await supabase.from('attendance')
-                        .update({ punch_out: now })
-                        .eq('labour_id', matchedLabourId)
-                        .eq('date', dateOnly);
-                    
-                    if (error) alert("Error punching out: " + error.message);
-                    else alert("Punch OUT Successful at " + new Date().toLocaleTimeString());
+                    alert("Punch IN Successful!");
                 }
-                statusText.innerText = "Ready for next person.";
-            }, 1000);
+            } else {
+                // Record Punch Out
+                const { error } = await supabase.from('attendance')
+                    .update({ punch_out: now })
+                    .eq('labour_id', matchedLabourId)
+                    .eq('date', dateOnly);
+                
+                if (error) alert("Error punching out: " + error.message);
+                else alert("Punch OUT Successful!");
+            }
+            
+            statusText.innerText = "Ready! Position face in frame.";
         }
+
+        // Boot everything up when the page loads
+        loadModels();
     </script>
 </body>
 </html>
