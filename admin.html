@@ -21,8 +21,9 @@
         </div>
 
         <!-- DASHBOARD VIEW (Hidden initially) -->
-        <div id="dashboardView" class="hidden p-6 overflow-y-auto h-full flex-col">
-            <div class="flex justify-between items-center mb-6">
+        <div id="dashboardView" class="hidden flex-col h-full overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 bg-white border-b flex justify-between items-center shadow-sm z-10">
                 <div>
                     <h1 class="text-xl font-bold text-gray-800" id="firmNameDisplay">Dashboard</h1>
                     <p class="text-xs text-gray-500">Firm Admin Portal</p>
@@ -30,24 +31,45 @@
                 <button onclick="logout()" class="text-red-500 font-bold text-sm bg-red-50 px-3 py-1 rounded">Logout</button>
             </div>
 
-            <!-- Add Employee Form -->
-            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
-                <h2 class="font-bold mb-3 text-blue-800">Add New Employee</h2>
-                <input type="text" id="eName" placeholder="Full Name" class="w-full p-2 border rounded mb-2 text-sm">
-                <input type="text" id="eLoginId" placeholder="Create Login ID (e.g. user01)" class="w-full p-2 border rounded mb-2 text-sm">
-                <input type="text" id="ePassword" placeholder="Create Password" class="w-full p-2 border rounded mb-2 text-sm">
-                <div class="flex gap-2 mb-3">
-                    <input type="tel" id="eMobile" placeholder="Mobile" class="w-1/2 p-2 border rounded text-sm">
-                    <input type="number" id="eSalary" placeholder="Salary" class="w-1/4 p-2 border rounded text-sm">
-                    <input type="number" id="eHours" placeholder="Hours" class="w-1/4 p-2 border rounded text-sm">
-                </div>
-                <button onclick="addEmployee()" class="w-full bg-blue-600 text-white p-2 rounded font-bold text-sm shadow active:scale-95 transition">Create Account</button>
+            <!-- Tab Navigation -->
+            <div class="flex border-b bg-gray-50 z-10">
+                <button id="tabBtn-employees" onclick="switchTab('employees')" class="flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600 text-sm">Manage Employees</button>
+                <button id="tabBtn-attendance" onclick="switchTab('attendance')" class="flex-1 py-3 font-bold text-gray-500 text-sm">Attendance Logs</button>
             </div>
 
-            <!-- Employee List -->
-            <h2 class="font-bold mb-3 text-gray-700 border-b pb-2">Your Employees</h2>
-            <div id="employeeList" class="flex flex-col gap-3 pb-6">
-                <!-- Data populates here -->
+            <!-- Scrollable Content Area -->
+            <div class="p-4 overflow-y-auto flex-grow">
+                
+                <!-- 1. EMPLOYEES SECTION -->
+                <div id="section-employees" class="flex flex-col">
+                    <!-- Add Employee Form -->
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                        <h2 class="font-bold mb-3 text-blue-800">Add New Employee</h2>
+                        <input type="text" id="eName" placeholder="Full Name" class="w-full p-2 border rounded mb-2 text-sm bg-white">
+                        <input type="text" id="eLoginId" placeholder="Create Login ID" class="w-full p-2 border rounded mb-2 text-sm bg-white">
+                        <input type="text" id="ePassword" placeholder="Create Password" class="w-full p-2 border rounded mb-2 text-sm bg-white">
+                        <div class="flex gap-2 mb-3">
+                            <input type="tel" id="eMobile" placeholder="Mobile" class="w-1/2 p-2 border rounded text-sm bg-white">
+                            <input type="number" id="eSalary" placeholder="Salary" class="w-1/4 p-2 border rounded text-sm bg-white">
+                            <input type="number" id="eHours" placeholder="Hours" class="w-1/4 p-2 border rounded text-sm bg-white">
+                        </div>
+                        <button onclick="addEmployee()" class="w-full bg-blue-600 text-white p-2 rounded font-bold text-sm shadow active:scale-95 transition">Create Account</button>
+                    </div>
+
+                    <h2 class="font-bold mb-3 text-gray-700 border-b pb-2">Your Employees</h2>
+                    <div id="employeeList" class="flex flex-col gap-3 pb-6"></div>
+                </div>
+
+                <!-- 2. ATTENDANCE SECTION (Hidden initially) -->
+                <div id="section-attendance" class="hidden flex-col">
+                    <div class="flex justify-between items-center mb-4 bg-white p-3 rounded border shadow-sm">
+                        <h2 class="font-bold text-gray-700">Select Date:</h2>
+                        <input type="date" id="attendanceDate" class="p-2 border rounded text-sm bg-gray-50 font-medium" onchange="loadAttendance()">
+                    </div>
+                    
+                    <div id="attendanceList" class="flex flex-col gap-3 pb-6"></div>
+                </div>
+
             </div>
         </div>
 
@@ -60,6 +82,9 @@
 
         let currentAdminId = null;
 
+        // Set today's date in the date picker by default
+        document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
+
         async function adminLogin() {
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
@@ -69,25 +94,42 @@
             
             if (error || !data) return alert("Invalid Admin ID or Password");
             
-            // Save the logged-in admin's ID
             currentAdminId = data.id;
-            
-            // Update UI with the Firm Name
             document.getElementById('firmNameDisplay').innerText = data.firm_name || 'Dashboard';
             
-            // Switch views
             document.getElementById('loginView').classList.add('hidden');
             document.getElementById('dashboardView').classList.remove('hidden');
             document.getElementById('dashboardView').classList.add('flex');
             
             loadEmployees();
+            loadAttendance();
         }
 
+        // --- TAB LOGIC ---
+        function switchTab(tabName) {
+            // Reset buttons
+            document.getElementById('tabBtn-employees').className = "flex-1 py-3 font-bold text-gray-500 text-sm";
+            document.getElementById('tabBtn-attendance').className = "flex-1 py-3 font-bold text-gray-500 text-sm";
+            
+            // Hide all sections
+            document.getElementById('section-employees').classList.add('hidden');
+            document.getElementById('section-attendance').classList.add('hidden');
+            
+            // Activate selected
+            document.getElementById(`tabBtn-${tabName}`).className = "flex-1 py-3 font-bold text-blue-600 border-b-2 border-blue-600 text-sm";
+            document.getElementById(`section-${tabName}`).classList.remove('hidden');
+            document.getElementById(`section-${tabName}`).classList.add('flex');
+            
+            if (tabName === 'employees') loadEmployees();
+            if (tabName === 'attendance') loadAttendance();
+        }
+
+        // --- EMPLOYEE LOGIC ---
         async function addEmployee() {
-            if (!currentAdminId) return alert("Session expired. Please login again.");
+            if (!currentAdminId) return alert("Session expired.");
 
             const empData = {
-                admin_id: currentAdminId, // <-- THIS LINKS THE EMPLOYEE TO THE FIRM
+                admin_id: currentAdminId,
                 name: document.getElementById('eName').value,
                 login_id: document.getElementById('eLoginId').value,
                 password: document.getElementById('ePassword').value,
@@ -103,11 +145,13 @@
             const { error } = await supabaseClient.from('employees').insert([empData]);
             
             if (error) {
-                if (error.code === '23505') alert("This Login ID is already taken. Choose another.");
+                if (error.code === '23505') alert("This Login ID is already taken.");
                 else alert("Error: " + error.message);
             } else {
-                alert("Employee created successfully!");
-                document.querySelectorAll('#dashboardView input').forEach(i => i.value = '');
+                alert("Employee created!");
+                document.getElementById('eName').value = '';
+                document.getElementById('eLoginId').value = '';
+                document.getElementById('ePassword').value = '';
                 loadEmployees();
             }
         }
@@ -115,21 +159,13 @@
         async function loadEmployees() {
             if (!currentAdminId) return;
 
-            // Notice the .eq('admin_id', currentAdminId) filter below!
-            // This ensures they ONLY pull their own firm's employees.
             const { data, error } = await supabaseClient.from('employees')
-                .select('*')
-                .eq('admin_id', currentAdminId) 
-                .order('created_at', { ascending: false });
+                .select('*').eq('admin_id', currentAdminId).order('created_at', { ascending: false });
                 
-            if (error) return console.error(error);
+            if (error) return;
             
             const list = document.getElementById('employeeList');
-            
-            if(data.length === 0) {
-                list.innerHTML = `<p class="text-sm text-gray-500 text-center mt-4">No employees registered yet.</p>`;
-                return;
-            }
+            if(data.length === 0) return list.innerHTML = `<p class="text-sm text-gray-500 text-center mt-4">No employees yet.</p>`;
 
             list.innerHTML = data.map(emp => `
                 <div class="bg-white p-3 rounded-lg border border-gray-200 shadow-sm text-sm">
@@ -140,9 +176,59 @@
                         </span>
                     </div>
                     <p class="text-gray-600 mb-1">Login: <span class="font-mono font-bold text-black">${emp.login_id}</span> | Pass: <span class="font-mono font-bold text-black">${emp.password}</span></p>
-                    <div class="flex justify-between text-gray-500 text-xs">
-                        <span>📱 ${emp.mobile_no || 'N/A'}</span>
-                        <span>⏱ ${emp.working_hours} Hrs</span>
+                </div>
+            `).join('');
+        }
+
+        // --- ATTENDANCE LOGIC ---
+        function formatTime(isoString) {
+            if (!isoString) return '<span class="text-gray-400">Not recorded</span>';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function loadAttendance() {
+            if (!currentAdminId) return;
+            
+            const selectedDate = document.getElementById('attendanceDate').value;
+            const list = document.getElementById('attendanceList');
+            list.innerHTML = `<p class="text-sm text-gray-500 text-center mt-4">Loading...</p>`;
+
+            // Fetch attendance AND join the related employee data.
+            // The !inner ensures we ONLY get attendance records for this specific firm's employees.
+            const { data, error } = await supabaseClient.from('attendance')
+                .select(`
+                    id, date, punch_in, punch_out,
+                    employees!inner ( name, admin_id )
+                `)
+                .eq('employees.admin_id', currentAdminId)
+                .eq('date', selectedDate)
+                .order('punch_in', { ascending: false });
+
+            if (error) {
+                console.error(error);
+                list.innerHTML = `<p class="text-sm text-red-500 text-center mt-4">Error loading data.</p>`;
+                return;
+            }
+
+            if (data.length === 0) {
+                list.innerHTML = `<p class="text-sm text-gray-500 text-center mt-8">No attendance records found for this date.</p>`;
+                return;
+            }
+
+            list.innerHTML = data.map(record => `
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm text-sm flex flex-col gap-2">
+                    <p class="font-bold text-lg text-gray-800">${record.employees.name}</p>
+                    
+                    <div class="flex justify-between bg-gray-50 p-2 rounded border border-gray-100">
+                        <div class="flex flex-col">
+                            <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Punch In</span>
+                            <span class="text-green-600 font-medium text-base">${formatTime(record.punch_in)}</span>
+                        </div>
+                        <div class="flex flex-col text-right">
+                            <span class="text-xs text-gray-500 font-bold uppercase tracking-wider">Punch Out</span>
+                            <span class="text-red-600 font-medium text-base">${formatTime(record.punch_out)}</span>
+                        </div>
                     </div>
                 </div>
             `).join('');
