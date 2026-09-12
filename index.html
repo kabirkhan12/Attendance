@@ -3,52 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Firm Setup & Login</title>
-    <!-- Prevents the favicon 404 error -->
+    <title>Attendance System</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 flex justify-center h-screen">
-    <!-- Max-w-md forces mobile portrait view on desktop -->
     <div class="w-full max-w-md bg-white h-full shadow-lg p-6 flex flex-col justify-center">
         
-        <h1 class="text-2xl font-bold text-center text-blue-600 mb-8">Attendance System</h1>
-        
-        <div class="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-200">
-            <h2 class="text-lg font-semibold mb-2">Register New Firm</h2>
-            <input type="text" id="firmName" placeholder="Enter Firm Name" class="w-full p-3 border rounded mb-3">
-            <button onclick="registerFirm()" class="w-full bg-blue-600 text-white p-3 rounded font-bold">Add Firm</button>
+        <h1 class="text-3xl font-bold text-center text-blue-600 mb-12">Attendance System</h1>
+
+        <div class="flex flex-col gap-6">
+            <h2 class="text-xl font-semibold text-center text-gray-700">Login As:</h2>
+            <a href="admin.html" class="w-full bg-gray-800 text-white text-center p-4 rounded-lg font-bold text-lg shadow-md active:scale-95 transition">Admin Portal</a>
+            <a href="user.html" class="w-full bg-green-600 text-white text-center p-4 rounded-lg font-bold text-lg shadow-md active:scale-95 transition">User Login</a>
         </div>
 
-        <div class="flex flex-col gap-4 mt-4">
-            <h2 class="text-lg font-semibold text-center">Login As:</h2>
-            <a href="admin.html" class="w-full bg-gray-800 text-white text-center p-3 rounded font-bold">Admin Portal</a>
-            <a href="labour.html" class="w-full bg-green-600 text-white text-center p-3 rounded font-bold">Labour Punch In/Out</a>
-        </div>
     </div>
-
-    <script>
-        const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
-        const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
-        
-        // FIXED: Renamed variable to supabaseClient and used window.supabase
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-        async function registerFirm() {
-            const name = document.getElementById('firmName').value;
-            if (!name) return alert("Enter firm name!");
-            
-            // FIXED: Using supabaseClient instead of supabase
-            const { data, error } = await supabaseClient.from('firms').insert([{ name }]).select();
-            
-            if (error) {
-                alert("Error: " + error.message);
-            } else {
-                alert("Firm created successfully! Save this Firm ID for Admin access: " + data[0].id);
-                localStorage.setItem('firm_id', data[0].id);
-            }
-        }
-    </script>
 </body>
 </html>
