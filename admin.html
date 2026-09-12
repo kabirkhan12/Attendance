@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 flex justify-center h-screen">
+    <div class="w-full max-w-md bg-white h-full shadow-lg p-6 overflow-y-auto">
+        <a href="index.html" class="text-sm text-blue-500 mb-4 inline-block">&larr; Back to Home</a>
+        <h1 class="text-2xl font-bold mb-6">Admin Dashboard</h1>
+
+        <h2 class="text-lg font-semibold mb-3">Add New Labour</h2>
+        <div class="flex flex-col gap-3">
+            <input type="text" id="lName" placeholder="Full Name" class="p-3 border rounded bg-gray-50">
+            <input type="tel" id="lMobile" placeholder="Mobile Number" class="p-3 border rounded bg-gray-50">
+            <input type="number" id="lSalary" placeholder="Monthly Salary (₹)" class="p-3 border rounded bg-gray-50">
+            <input type="number" id="lHours" placeholder="Working Hours (e.g., 8)" class="p-3 border rounded bg-gray-50">
+            <!-- Note: Face Enrollment logic would go here -->
+            <button onclick="addLabour()" class="bg-gray-800 text-white p-3 rounded font-bold mt-2">Register Labour</button>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
+        const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
+        const supabase = supabaseCreateClient.createClient(supabaseUrl, supabaseKey);
+        
+        // Auto-fetch firm ID if registered on the same device
+        const firmId = localStorage.getItem('firm_id');
+
+        async function addLabour() {
+            if(!firmId) return alert("No Firm ID found. Go back and create a firm first.");
+            
+            const name = document.getElementById('lName').value;
+            const mobile_no = document.getElementById('lMobile').value;
+            const monthly_salary = document.getElementById('lSalary').value;
+            const working_hours = document.getElementById('lHours').value;
+
+            const { data, error } = await supabase.from('labours').insert([{
+                firm_id: firmId, name, mobile_no, monthly_salary, working_hours,
+                face_descriptor: "pending_enrollment" // Placeholder for face data
+            }]);
+
+            if (error) alert("Error: " + error.message);
+            else {
+                alert("Labour added successfully!");
+                document.querySelectorAll('input').forEach(i => i.value = '');
+            }
+        }
+    </script>
+</body>
+</html>
