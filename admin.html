@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Admin Dashboard</title>
+    <title>InOut Admin Dashboard</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -162,8 +162,15 @@
                 <!-- TAB 3: REPORTS -->
                 <div id="tab-reports" class="hidden flex-col bg-white min-h-full">
                     <div class="flex flex-col w-full divide-y divide-gray-100">
-                        <button type="button" onclick="exportCSV('Daily Time')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700"><i class="far fa-calendar-day text-gray-400 w-5"></i> Daily Time Tracking Report</button>
-                        <button type="button" onclick="exportCSV('Punch Log')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700"><i class="fas fa-file-invoice text-gray-400 w-5"></i> Punch Log Report</button>
+                        <button type="button" onclick="exportCSV('Daily Time')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="far fa-calendar-day text-gray-400 w-5"></i> Daily Time Tracking Report
+                        </button>
+                        <button type="button" onclick="exportCSV('Punch Log')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="fas fa-file-invoice text-gray-400 w-5"></i> Punch Log Report
+                        </button>
+                        <button type="button" onclick="toggleModal('monthlyReportModal')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="far fa-calendar-alt text-gray-400 w-5"></i> Monthly Time Tracking Report
+                        </button>
                     </div>
                 </div>
 
@@ -184,6 +191,15 @@
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
                     </div>
+
+                    <!-- Add Others category for Passwords -->
+                    <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase mt-4">Others</div>
+                    <div class="flex flex-col w-full divide-y divide-gray-100">
+                        <button type="button" onclick="toggleModal('changePasswordModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-lock text-gray-400 w-5"></i> Change Password</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                    </div>
                 </div>
 
             </main>
@@ -197,7 +213,8 @@
             </footer>
         </div>
 
-        <!-- MODALS -->
+        <!-- ================= MODALS ================= -->
+        
         <!-- Location Modal -->
         <div id="locationModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
@@ -255,6 +272,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- Monthly Report Modal -->
+        <div id="monthlyReportModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+                <h3 class="font-bold text-lg mb-4 text-gray-800"><i class="far fa-calendar-alt text-blue-500 mr-2"></i> Monthly Report</h3>
+                <p class="text-xs text-gray-500 mb-4">Select a month to generate a full attendance and salary report.</p>
+                <input type="month" id="reportMonth" class="w-full p-3 border rounded mb-4 text-sm bg-gray-50">
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleModal('monthlyReportModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-sm">Cancel</button>
+                    <button type="button" onclick="exportMonthlyCSV()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm">Download CSV</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Change Password Modal -->
+        <div id="changePasswordModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+                <h3 class="font-bold text-lg mb-4 text-gray-800"><i class="fas fa-lock text-blue-500 mr-2"></i> Change Password</h3>
+                <input type="password" id="currPass" placeholder="Current Password" class="w-full p-3 border rounded mb-3 text-sm bg-gray-50">
+                <input type="password" id="newPass" placeholder="New Password" class="w-full p-3 border rounded mb-3 text-sm bg-gray-50">
+                <input type="password" id="confPass" placeholder="Confirm Password" class="w-full p-3 border rounded mb-4 text-sm bg-gray-50">
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleModal('changePasswordModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-sm">Cancel</button>
+                    <button type="button" onclick="changeAdminPassword()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm">Update</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -341,6 +386,26 @@
             }
         }
 
+        async function changeAdminPassword() {
+            const curr = document.getElementById('currPass').value;
+            const newP = document.getElementById('newPass').value;
+            const conf = document.getElementById('confPass').value;
+
+            if (curr !== currentAdmin.password) return alert("Current password incorrect!");
+            if (newP !== conf) return alert("New passwords do not match!");
+            if (newP.length < 4) return alert("Password too short.");
+
+            const { error } = await supabaseClient.from('admins').update({ password: newP }).eq('id', currentAdmin.id);
+            if (error) return alert("Error: " + error.message);
+
+            currentAdmin.password = newP;
+            alert("Password changed successfully!");
+            document.getElementById('currPass').value = '';
+            document.getElementById('newPass').value = '';
+            document.getElementById('confPass').value = '';
+            toggleModal('changePasswordModal');
+        }
+
         // --- NAVIGATION & FILTERS ---
         function switchTab(tabName) {
             ['dashboard', 'punch', 'reports', 'settings'].forEach(t => {
@@ -383,11 +448,11 @@
             const actualTime = new Date(firstPunchInISO);
             
             for (let shift of shifts) {
-                const [startStr, endStr] = shift.split('-');
-                if(!startStr || !endStr) continue;
+                const parts = shift.split('-');
+                if(parts.length < 2) continue;
 
-                const [expHour, expMin] = startStr.split(':').map(Number);
-                const [endHour, endMin] = endStr.split(':').map(Number);
+                const [expHour, expMin] = parts[0].split(':').map(Number);
+                const [endHour, endMin] = parts[1].split(':').map(Number);
                 
                 const expectedStart = new Date(firstPunchInISO);
                 expectedStart.setHours(expHour, expMin, 0, 0);
@@ -396,8 +461,7 @@
                 expectedEnd.setHours(endHour, endMin, 0, 0);
                 if (endHour < expHour) expectedEnd.setDate(expectedEnd.getDate() + 1);
 
-                // 15 Minutes Grace Period applied to Start Time
-                const graceTime = new Date(expectedStart.getTime() + 15 * 60000);
+                const graceTime = new Date(expectedStart.getTime() + 15 * 60000); // 15 Minutes Grace Period
                 
                 if (actualTime <= expectedEnd) {
                     return actualTime > graceTime;
@@ -461,10 +525,8 @@
                             `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded font-bold uppercase">Out</span>`;
                 if(emp.isLate) badge += ` <span class="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded font-bold uppercase ml-1">Late</span>`;
 
-                // Handle Display of Timings cleanly
                 const displayShift = emp.work_timing ? emp.work_timing.replace(',', ' & ') : 'Not Set';
                 
-                // Dynamic Punches display for Dual Shifts
                 let punchHTML = '';
                 if(emp.punches.length === 0) {
                     punchHTML = `
@@ -493,9 +555,7 @@
                             <div class="mt-2 text-right"><span class="text-[9px] text-gray-400 uppercase font-bold">Total Hrs: </span><span class="text-blue-600 font-bold text-xs">${emp.totalHrs.toFixed(2)}</span></div>
                         </div>
                     </div>
-                    
                     ${punchHTML}
-                    
                     <div class="flex gap-2 mt-3 pt-2 border-t border-dashed border-gray-200">
                         <button type="button" onclick="overrideStatus('${emp.id}', 'Absent')" class="flex-1 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 py-1 rounded text-[10px] font-bold transition">Mark Absent</button>
                         <button type="button" onclick="overrideStatus('${emp.id}', 'Late')" class="flex-1 bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-orange-600 py-1 rounded text-[10px] font-bold transition">Mark Late</button>
@@ -541,7 +601,6 @@
         async function saveEmployee() {
             let dept = document.getElementById('eDept').value === 'Other' ? document.getElementById('eDeptOther').value : document.getElementById('eDept').value;
             
-            // Build the timing string based on Single vs Dual selection
             let finalTimingStr = "";
             const timingType = document.getElementById('eTimingType').value;
             if (timingType === 'Single') {
@@ -572,7 +631,7 @@
             }
         }
 
-        // --- GEOFENCING SETTINGS ---
+        // --- GEOFENCING & CALENDAR SETTINGS ---
         function openLocationModal() {
             if(currentAdmin.geo_lat && currentAdmin.geo_lng) {
                 document.getElementById('locSavedView').classList.remove('hidden');
@@ -617,7 +676,6 @@
             toggleModal('locationModal');
         }
 
-        // --- CALENDAR LOGIC ---
         function openCalendarModal() {
             const currentWOs = (currentAdmin.weekly_offs || "").split(',');
             document.querySelectorAll('.wo-cb').forEach(cb => { cb.checked = currentWOs.includes(cb.value); });
@@ -705,19 +763,75 @@
         }
 
         // --- REPORTS ---
-        function exportCSV(reportType = "General") {
+        function exportCSV(reportType) {
             if (allEmployees.length === 0) return alert("No data available to export.");
-            let csvContent = "data:text/csv;charset=utf-8,Name,EMP Code,Department,Status,Total Hours,Estimated Salary\n";
-            allEmployees.forEach(e => {
-                const estSalary = parseFloat(e.monthly_salary || 0) + (e.totalHrs * parseFloat(e.overtime_rate || 0));
-                csvContent += `${e.name},${e.emp_code},${e.department},${e.status},${e.totalHrs},₹${estSalary}\n`;
-            });
-            const encodedUri = encodeURI(csvContent);
+            
+            let csvContent = "";
+
+            if (reportType === 'Daily Time') {
+                csvContent = "Name,EMP Code,Department,Status,Total Hours,Basic Salary,Overtime Salary,Total Estimated Salary\n";
+                allEmployees.forEach(e => {
+                    let otHours = e.totalHrs > 8 ? e.totalHrs - 8 : 0; // Assuming 8 hours standard for daily OT
+                    let otSalary = otHours * parseFloat(e.overtime_rate || 0);
+                    let basic = parseFloat(e.monthly_salary || 0);
+                    let total = basic + otSalary;
+                    csvContent += `${e.name},${e.emp_code || '-'},${e.department || '-'},${e.status},${e.totalHrs.toFixed(2)},₹${basic},₹${otSalary.toFixed(2)},₹${total.toFixed(2)}\n`;
+                });
+            } else if (reportType === 'Punch Log') {
+                csvContent = "Name,EMP Code,Department,Status,Total Hours,Shift 1 IN,Shift 1 OUT,Shift 2 IN,Shift 2 OUT\n";
+                allEmployees.forEach(e => {
+                    let s1In = e.punches[0]?.in ? formatTime(e.punches[0].in) : '--:--';
+                    let s1Out = e.punches[0]?.out ? formatTime(e.punches[0].out) : '--:--';
+                    let s2In = e.punches[1]?.in ? formatTime(e.punches[1].in) : '--:--';
+                    let s2Out = e.punches[1]?.out ? formatTime(e.punches[1].out) : '--:--';
+                    csvContent += `${e.name},${e.emp_code || '-'},${e.department || '-'},${e.status},${e.totalHrs.toFixed(2)},${s1In},${s1Out},${s2In},${s2Out}\n`;
+                });
+            }
+
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
             link.setAttribute("download", `${reportType.replace(/\s+/g, '_')}_Report.csv`);
             document.body.appendChild(link);
             link.click();
+        }
+
+        async function exportMonthlyCSV() {
+            const monthVal = document.getElementById('reportMonth').value; // YYYY-MM
+            if (!monthVal) return alert("Please select a month.");
+
+            const { data: attendanceList, error } = await supabaseClient.from('attendance')
+                .select('*').like('date', `${monthVal}-%`);
+                
+            if (error) return alert("Error fetching monthly data: " + error.message);
+
+            let csvContent = "Name,EMP Code,Department,Total Days Present,Total Hours,Basic Salary,Overtime Salary,Total Estimated Salary\n";
+
+            allEmployees.forEach(e => {
+                const empAtt = attendanceList.filter(a => a.employee_id === e.id && (a.status === 'Present' || a.status === 'Late' || a.punches?.length > 0));
+                let totalMonthHrs = 0;
+                let totalOTHours = 0;
+                
+                empAtt.forEach(record => {
+                    let dailyHrs = record.total_hours || 0;
+                    totalMonthHrs += dailyHrs;
+                    if (dailyHrs > 8) totalOTHours += (dailyHrs - 8); // Assuming 8 standard hours
+                });
+
+                const basic = parseFloat(e.monthly_salary || 0);
+                const otSalary = totalOTHours * parseFloat(e.overtime_rate || 0);
+                const totalEstimated = basic + otSalary;
+
+                csvContent += `${e.name},${e.emp_code || '-'},${e.department || '-'},${empAtt.length},${totalMonthHrs.toFixed(2)},₹${basic},₹${otSalary.toFixed(2)},₹${totalEstimated.toFixed(2)}\n`;
+            });
+
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Monthly_Report_${monthVal}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            toggleModal('monthlyReportModal');
         }
     </script>
 </body>
