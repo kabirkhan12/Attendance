@@ -3,48 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>User Portal</title>
+    <title>InOut User Portal</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-gray-100 flex justify-center h-screen bg-black">
-    <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col relative">
+<body class="bg-gray-100 flex justify-center h-screen">
+    <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col relative overflow-hidden">
         
-        <!-- LOGIN VIEW -->
-        <div id="loginView" class="p-6 flex flex-col justify-center h-full bg-white z-50 absolute inset-0">
-            <a href="index.html" class="text-blue-500 mb-6">&larr; Back to Home</a>
-            <h1 class="text-2xl font-bold mb-6">User Login</h1>
-            <input type="text" id="userId" placeholder="Login ID" class="p-3 border rounded mb-3 bg-gray-50">
-            <input type="password" id="userPassword" placeholder="Password" class="p-3 border rounded mb-6 bg-gray-50">
-            <button onclick="userLogin()" class="bg-green-600 text-white p-3 rounded font-bold">Login</button>
+        <!-- ================= LOGIN VIEW ================= -->
+        <div id="loginView" class="p-8 flex flex-col justify-center h-full bg-white z-50 absolute inset-0">
+            <div class="text-center mb-8">
+                <i class="fas fa-user-clock text-5xl text-blue-600 mb-3"></i>
+                <h1 class="text-3xl font-bold text-gray-800">InOut</h1>
+                <p class="text-gray-500 text-sm mt-1">Employee Punch Portal</p>
+            </div>
+            <input type="text" id="userId" placeholder="Login ID" class="p-4 border rounded-lg mb-4 bg-gray-50 focus:outline-none focus:border-blue-500">
+            <input type="password" id="userPassword" placeholder="Password" class="p-4 border rounded-lg mb-8 bg-gray-50 focus:outline-none focus:border-blue-500">
+            <button onclick="userLogin()" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition">Login</button>
         </div>
 
-        <!-- CAMERA VIEW (Hidden initially) -->
-        <div id="cameraView" class="hidden flex-col h-full w-full">
-            <div class="p-4 bg-green-600 text-white flex justify-between items-center z-10">
-                <span id="userNameHeader" class="font-bold">Welcome</span>
-                <button onclick="location.reload()" class="text-sm border px-2 py-1 rounded">Logout</button>
+        <!-- ================= APP VIEW (Hidden initially) ================= -->
+        <div id="appView" class="hidden flex-col h-full w-full bg-gray-50">
+            
+            <!-- HEADER -->
+            <div class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-10">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user-circle text-2xl"></i>
+                    <span id="userNameHeader" class="font-bold">Welcome</span>
+                </div>
+                <button onclick="location.reload()"><i class="fas fa-sign-out-alt text-xl hover:text-red-300"></i></button>
             </div>
 
-            <!-- Video area -->
-            <div class="flex-grow bg-black relative flex items-center justify-center overflow-hidden">
-                <video id="video" autoplay muted playsinline class="object-cover w-full h-full"></video>
-                <div class="absolute inset-0 border-4 border-dashed border-white opacity-50 m-12 rounded-lg pointer-events-none"></div>
-                <p id="statusText" class="absolute bottom-4 text-white bg-black bg-opacity-75 px-4 py-2 rounded font-semibold text-center w-3/4">Loading Camera...</p>
+            <!-- CAMERA SECTION (Height reduced for mobile fit) -->
+            <div class="h-72 bg-black relative flex items-center justify-center overflow-hidden m-4 rounded-2xl shadow-inner border-4 border-gray-200">
+                <video id="video" autoplay muted playsinline class="object-cover w-full h-full transform scale-x-[-1]"></video>
+                
+                <!-- Face Guide Overlay -->
+                <div class="absolute inset-0 border-2 border-dashed border-white opacity-40 m-8 rounded-full pointer-events-none flex items-center justify-center">
+                    <div class="w-full h-full bg-black bg-opacity-20 rounded-full"></div>
+                </div>
+                
+                <!-- Status Banner overlay inside camera -->
+                <div class="absolute bottom-4 left-0 right-0 flex justify-center">
+                    <p id="statusText" class="text-white bg-black bg-opacity-70 px-4 py-2 rounded-full font-semibold text-xs tracking-wider uppercase backdrop-blur-sm shadow-lg">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>Loading Camera...
+                    </p>
+                </div>
             </div>
 
-            <!-- Registration Controls -->
-            <div id="registerControls" class="hidden p-6 bg-white rounded-t-3xl -mt-6 z-10">
-                <p class="text-center text-sm mb-4 text-gray-600">You must register your face for the first time.</p>
-                <button onclick="registerFace()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">REGISTER MY FACE</button>
-            </div>
+            <!-- CONTROLS SECTION -->
+            <div class="flex-grow flex flex-col justify-start px-6">
+                
+                <!-- Registration Controls -->
+                <div id="registerControls" class="hidden flex-col items-center">
+                    <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg w-full mb-4">
+                        <p class="text-center text-sm text-blue-800 font-medium"><i class="fas fa-info-circle mr-1"></i> First time setup: Please look directly at the camera in good lighting to register your face biometric.</p>
+                    </div>
+                    <button onclick="registerFace()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition flex justify-center items-center gap-2">
+                        <i class="fas fa-camera"></i> REGISTER MY FACE
+                    </button>
+                </div>
 
-            <!-- Punch In/Out Controls -->
-            <div id="punchControls" class="hidden p-6 bg-white rounded-t-3xl -mt-6 z-10 flex gap-4">
-                <button onclick="recordAttendance('in')" class="flex-1 bg-green-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">PUNCH IN</button>
-                <button onclick="recordAttendance('out')" class="flex-1 bg-red-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition">PUNCH OUT</button>
+                <!-- Punch In/Out Controls -->
+                <div id="punchControls" class="hidden flex-col gap-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="recordAttendance('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1">
+                            <i class="fas fa-sign-in-alt text-2xl"></i>
+                            PUNCH IN
+                        </button>
+                        <button onclick="recordAttendance('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1">
+                            <i class="fas fa-sign-out-alt text-2xl"></i>
+                            PUNCH OUT
+                        </button>
+                    </div>
+                    <div class="text-center mt-2">
+                        <p id="punchStatusMsg" class="text-sm font-medium text-gray-500">Position face in frame and tap to punch.</p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -58,35 +97,39 @@
         const video = document.getElementById('video');
         const statusText = document.getElementById('statusText');
 
+        // --- AUTHENTICATION ---
         async function userLogin() {
             const loginId = document.getElementById('userId').value;
             const password = document.getElementById('userPassword').value;
             
+            if(!loginId || !password) return alert("Enter Login ID and Password.");
+
             const { data, error } = await supabaseClient.from('employees')
                 .select('*').eq('login_id', loginId).eq('password', password).single();
             
             if (error || !data) return alert("Invalid Login ID or Password");
             
             currentUser = data;
-            document.getElementById('userNameHeader').innerText = "Hi, " + currentUser.name;
+            document.getElementById('userNameHeader').innerText = currentUser.name;
             
-            // Switch views
             document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('cameraView').classList.remove('hidden');
-            document.getElementById('cameraView').classList.add('flex');
+            document.getElementById('appView').classList.remove('hidden');
+            document.getElementById('appView').classList.add('flex');
 
-            // Show correct buttons based on if face is registered
             if (!currentUser.face_descriptor) {
                 document.getElementById('registerControls').classList.remove('hidden');
+                document.getElementById('registerControls').classList.add('flex');
             } else {
                 document.getElementById('punchControls').classList.remove('hidden');
+                document.getElementById('punchControls').classList.add('flex');
             }
 
-            loadModels(); // Start AI Models and Camera
+            loadModels();
         }
 
+        // --- CAMERA & AI SETUP ---
         async function loadModels() {
-            statusText.innerText = "Loading AI Models...";
+            statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading AI...';
             const MODEL_URL = './models';
             try {
                 await Promise.all([
@@ -94,10 +137,9 @@
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
-                statusText.innerText = "Models Loaded.";
                 startVideo();
             } catch (err) {
-                statusText.innerText = "Error loading models.";
+                statusText.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Error loading models.';
             }
         }
 
@@ -105,20 +147,22 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 video.srcObject = stream;
-                statusText.innerText = "Ready! Look at the camera.";
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
             } catch (err) {
-                statusText.innerText = "Camera Access Denied!";
+                statusText.innerHTML = '<i class="fas fa-video-slash mr-2 text-red-500"></i>Access Denied!';
             }
         }
 
-        // --- FACE REGISTRATION LOGIC ---
+        // --- FACE REGISTRATION ---
         async function registerFace() {
-            statusText.innerText = "Scanning Face for Registration...";
+            statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Scanning Face...';
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
             
-            if (!detection) return alert("No face detected! Look directly at the camera in good lighting.");
+            if (!detection) {
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+                return alert("No face detected! Look directly at the camera in good lighting.");
+            }
             
-            // Convert array to string to save in database
             const descriptorString = JSON.stringify(Array.from(detection.descriptor));
             
             const { error } = await supabaseClient.from('employees')
@@ -128,62 +172,107 @@
             if (error) return alert("Error saving face: " + error.message);
             
             alert("Face Registered Successfully! You can now Punch In/Out.");
-            
-            // Update local user and swap buttons
             currentUser.face_descriptor = descriptorString;
+            
             document.getElementById('registerControls').classList.add('hidden');
+            document.getElementById('registerControls').classList.remove('flex');
             document.getElementById('punchControls').classList.remove('hidden');
             document.getElementById('punchControls').classList.add('flex');
-            statusText.innerText = "Ready! Look at the camera.";
+            statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
         }
 
-        // --- ATTENDANCE PUNCH LOGIC ---
+        // --- NEW FLEXI-ATTENDANCE LOGIC (JSONB ARRAY) ---
         async function recordAttendance(type) {
-            statusText.innerText = "Verifying Identity...";
+            statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying Identity...';
             
-            // 1. Capture live face
+            // 1. Biometric Check
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
             if (!detection) {
-                statusText.innerText = "Ready! Look at the camera.";
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
                 return alert("No face detected! Look directly at the camera.");
             }
 
-            // 2. Compare live face with user's saved face
             const liveDesc = detection.descriptor;
             const savedDesc = new Float32Array(JSON.parse(currentUser.face_descriptor));
-            
-            // Calculate mathematical distance between faces (lower = better match)
             const distance = faceapi.euclideanDistance(liveDesc, savedDesc);
             
             if (distance > 0.6) {
-                statusText.innerText = "Ready! Look at the camera.";
+                statusText.innerHTML = '<i class="fas fa-times-circle mr-2 text-red-400"></i>Match Failed';
+                setTimeout(() => statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready', 2000);
                 return alert("Face does NOT match the registered user! Access Denied.");
             }
 
-            // 3. Match successful, save attendance
+            // 2. Fetch today's database record to append/update the punches array
             const now = new Date().toISOString();
             const dateOnly = new Date().toISOString().split('T')[0];
+            const msgEl = document.getElementById('punchStatusMsg');
+
+            const { data: record, error: fetchErr } = await supabaseClient
+                .from('attendance')
+                .select('*')
+                .eq('employee_id', currentUser.id)
+                .eq('date', dateOnly)
+                .single(); // Might return error if no row exists today
+
+            let punches = record ? record.punches || [] : [];
+            let totalHrs = record ? record.total_hours || 0 : 0;
 
             if (type === 'in') {
-                const { error } = await supabaseClient.from('attendance').insert([{
-                    employee_id: currentUser.id, date: dateOnly, punch_in: now
-                }]);
+                // Prevent double punch-in
+                if (punches.length > 0 && !punches[punches.length - 1].out) {
+                    statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+                    return alert("You are already Punched IN!");
+                }
+
+                punches.push({ in: now });
+
+                if (!record) {
+                    // Create first record of the day
+                    const { error } = await supabaseClient.from('attendance').insert([{
+                        employee_id: currentUser.id,
+                        date: dateOnly,
+                        punches: punches,
+                        total_hours: 0,
+                        status: 'Present'
+                    }]);
+                    if (error) return alert("Error inserting data: " + error.message);
+                } else {
+                    // Append punch to existing record (2nd shift)
+                    const { error } = await supabaseClient.from('attendance').update({ punches }).eq('id', record.id);
+                    if (error) return alert("Error updating data: " + error.message);
+                }
                 
-                if (error && error.code === '23505') alert("You have already punched in today!");
-                else if (error) alert("Error punching in: " + error.message);
-                else alert("Punch IN Successful!");
-                
+                msgEl.innerHTML = `<span class="text-green-600 font-bold">Punched IN at ${new Date().toLocaleTimeString()}</span>`;
+                alert("Punch IN Successful!");
+
             } else {
-                const { error } = await supabaseClient.from('attendance')
-                    .update({ punch_out: now })
-                    .eq('employee_id', currentUser.id)
-                    .eq('date', dateOnly);
+                // type === 'out'
+                if (punches.length === 0 || punches[punches.length - 1].out) {
+                    statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+                    return alert("You need to Punch IN first!");
+                }
                 
-                if (error) alert("Error punching out: " + error.message);
-                else alert("Punch OUT Successful!");
+                let lastPunch = punches[punches.length - 1];
+                lastPunch.out = now;
+
+                // Calculate hours for this specific shift session
+                let inTime = new Date(lastPunch.in).getTime();
+                let outTime = new Date(lastPunch.out).getTime();
+                let sessionHrs = (outTime - inTime) / (1000 * 60 * 60); // convert ms to hours
+                totalHrs += sessionHrs;
+
+                const { error } = await supabaseClient.from('attendance').update({
+                    punches: punches,
+                    total_hours: totalHrs
+                }).eq('id', record.id);
+                
+                if (error) return alert("Error saving punch out: " + error.message);
+                
+                msgEl.innerHTML = `<span class="text-orange-600 font-bold">Punched OUT at ${new Date().toLocaleTimeString()}<br>Hours today: ${totalHrs.toFixed(2)}</span>`;
+                alert("Punch OUT Successful!");
             }
             
-            statusText.innerText = "Ready! Look at the camera.";
+            statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
         }
     </script>
 </body>
