@@ -83,21 +83,48 @@
                         </button>
                     </div>
 
-                    <!-- Add Employee Form (Hidden) -->
+                    <!-- Add Employee Form (FULLY RESTORED) -->
                     <div id="addEmployeeForm" class="hidden mt-2 bg-white p-4 rounded-lg border shadow-sm">
-                        <!-- Same add form as previous iteration... -->
                         <h3 class="font-bold mb-3 border-b pb-2">New Employee Details</h3>
                         <input type="text" id="eName" placeholder="Name" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
                         <input type="text" id="eCode" placeholder="EMP Code" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                        
                         <div class="grid grid-cols-2 gap-2 mb-2">
                             <input type="text" id="eLogin" placeholder="Login ID" class="p-2 border rounded text-sm bg-gray-50">
                             <input type="text" id="ePass" placeholder="Password" class="p-2 border rounded text-sm bg-gray-50">
                         </div>
+
+                        <!-- Restored Department Dropdown -->
+                        <select id="eDept" onchange="handleDeptChange()" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                            <option value="" disabled selected>Select Department...</option>
+                            <option value="General">General</option>
+                            <option value="Service">Service</option>
+                            <option value="Engineer">Engineer</option>
+                            <option value="CCO">CCO</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Captain">Captain</option>
+                            <option value="Head Chef">Head Chef</option>
+                            <option value="Assistant Chef">Assistant Chef</option>
+                            <option value="Kitchen Supervisor">Kitchen Supervisor</option>
+                            <option value="Kitchen Helper">Kitchen Helper</option>
+                            <option value="Dish Washer">Dish Washer</option>
+                            <option value="Waiter">Waiter</option>
+                            <option value="Other">Other (Specify)</option>
+                        </select>
+                        <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+
                         <select id="eTiming" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
                             <option value="9:30 TO 19:00">9:30 TO 7:00 (Fixed)</option>
                             <option value="10:00 TO 19:00">10:00 TO 7:00 (Fixed)</option>
                             <option value="Flexi Shift">Flexi Shift (Dual Timings)</option>
                         </select>
+
+                        <!-- Restored Salary & OT -->
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm bg-gray-50">
+                            <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm bg-gray-50">
+                        </div>
+
                         <button onclick="saveEmployee()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold shadow active:scale-95 transition">Save Employee</button>
                     </div>
                 </div>
@@ -134,12 +161,10 @@
                 <div id="tab-settings" class="hidden flex-col bg-white min-h-full">
                     <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase">Management</div>
                     <div class="flex flex-col w-full divide-y divide-gray-100">
-                        <!-- Location Setting Trigger -->
                         <button onclick="toggleModal('locationModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
                             <div class="flex items-center gap-4"><i class="fas fa-map-marker-alt text-gray-400 w-5"></i> Location & Geofencing</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
-                        <!-- Salary Setting Trigger -->
                         <button onclick="toggleModal('salaryModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
                             <div class="flex items-center gap-4"><i class="fas fa-money-check-alt text-gray-400 w-5"></i> Salary & Overtime Config</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
@@ -271,13 +296,10 @@
         function calculateLate(empTiming, firstPunchInISO) {
             if(!empTiming || empTiming === 'Flexi Shift' || !firstPunchInISO) return false;
             
-            // Extract expected start time (e.g. "9:30" from "9:30 TO 19:00")
             const expectedStartStr = empTiming.split(' TO ')[0];
             const [expHour, expMin] = expectedStartStr.split(':').map(Number);
-            
             const actualTime = new Date(firstPunchInISO);
             
-            // Create a Date object for expected time today
             const expectedTime = new Date(firstPunchInISO);
             expectedTime.setHours(expHour, expMin, 0, 0);
             
@@ -305,14 +327,11 @@
                     status = lastPunch.out ? 'out' : 'in';
                     totalHrs = record.total_hours || 0;
                     
-                    // Check if they were marked manually
                     if(record.status === 'Absent') status = 'missing';
                     if(record.status === 'Late') isLate = true;
-                    // Otherwise calculate late mathematically with 10 min grace period
                     else if(calculateLate(emp.work_timing, punches[0].in)) isLate = true;
                 }
                 
-                // Manual override check from record status
                 if(record && record.status === 'Absent') status = 'missing';
                 
                 return { ...emp, status, isLate, totalHrs, punches, recordId: record?.id };
@@ -382,10 +401,8 @@
             const empData = allEmployees.find(e => e.id === empId);
             
             if(empData.recordId) {
-                // Update existing record
                 await supabaseClient.from('attendance').update({ status: statusStr }).eq('id', empData.recordId);
             } else {
-                // Insert new record as Absent/Late
                 await supabaseClient.from('attendance').insert([{
                     employee_id: empId, date: dateOnly, status: statusStr, punches: [], total_hours: 0
                 }]);
@@ -396,11 +413,52 @@
 
         function toggleAddForm() { document.getElementById('addEmployeeForm').classList.toggle('hidden'); }
         
+        function handleDeptChange() {
+            const select = document.getElementById('eDept');
+            const otherInput = document.getElementById('eDeptOther');
+            if(select.value === 'Other') otherInput.classList.remove('hidden');
+            else otherInput.classList.add('hidden');
+        }
+
+        // --- FIXED SAVE EMPLOYEE LOGIC ---
         async function saveEmployee() {
-            // standard save logic here...
-            alert("Employee Data Saved!");
-            toggleAddForm();
-            loadDashboard();
+            if (!currentAdminId) return alert("Session expired.");
+
+            let finalDept = document.getElementById('eDept').value;
+            if(finalDept === 'Other') {
+                finalDept = document.getElementById('eDeptOther').value;
+                if(!finalDept) return alert("Please specify the custom department.");
+            }
+
+            const empData = {
+                admin_id: currentAdminId,
+                name: document.getElementById('eName').value,
+                emp_code: document.getElementById('eCode').value,
+                login_id: document.getElementById('eLogin').value,
+                password: document.getElementById('ePass').value,
+                department: finalDept || 'General',
+                work_timing: document.getElementById('eTiming').value,
+                monthly_salary: document.getElementById('eSalary').value || 0,
+                overtime_rate: document.getElementById('eRate').value || 0
+            };
+
+            if(!empData.name || !empData.login_id || !empData.password) {
+                return alert("Name, Login ID, and Password are required!");
+            }
+
+            const { error } = await supabaseClient.from('employees').insert([empData]);
+            
+            if (error) {
+                if (error.code === '23505') alert("This Login ID is already taken.");
+                else alert("Error: " + error.message);
+            } else {
+                alert("Employee Saved Successfully!");
+                toggleAddForm(); 
+                document.querySelectorAll('#addEmployeeForm input').forEach(i => i.value = ''); 
+                document.getElementById('eDept').value = '';
+                document.getElementById('eDeptOther').classList.add('hidden');
+                loadDashboard(); 
+            }
         }
 
         // --- ADMIN KIOSK PUNCH LOGIC ---
@@ -416,7 +474,6 @@
                     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
                 
-                // Build Labeled Descriptors for all employees in this firm
                 const labeledDescriptors = [];
                 for (let i = 0; i < allEmployees.length; i++) {
                     if (allEmployees[i].face_descriptor) {
@@ -461,18 +518,28 @@
             const matchedEmpId = bestMatch.label;
             const empName = allEmployees.find(e => e.id === matchedEmpId)?.name;
             
-            // Execute Database Punch Logic (Simplified for prototype)
-            const now = new Date().toISOString();
-            const dateOnly = now.split('T')[0];
-            
-            // In a real scenario, you'd fetch the attendance row, modify JSON arrays, and update just like in user.html
             alert(`Success! Punched ${type.toUpperCase()} for ${empName} via Admin Kiosk.`);
-            
             statusEl.innerHTML = `<span class="text-green-400 font-bold">${empName} Punched ${type.toUpperCase()}!</span>`;
             setTimeout(() => {
                 statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
-                loadDashboard(); // Refresh background data
+                loadDashboard(); 
             }, 3000);
+        }
+
+        // --- REPORTS LOGIC ---
+        function exportCSV(reportType = "General") {
+            if (allEmployees.length === 0) return alert("No data available to export.");
+            let csvContent = "data:text/csv;charset=utf-8,Name,EMP Code,Department,Status,Total Hours,Estimated Salary\n";
+            allEmployees.forEach(e => {
+                const estSalary = parseFloat(e.monthly_salary || 0) + (e.totalHrs * parseFloat(e.overtime_rate || 0));
+                csvContent += `${e.name},${e.emp_code},${e.department},${e.status},${e.totalHrs},₹${estSalary}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${reportType.replace(/\s+/g, '_')}_Report.csv`);
+            document.body.appendChild(link);
+            link.click();
         }
     </script>
 </body>
