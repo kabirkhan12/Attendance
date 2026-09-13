@@ -20,16 +20,20 @@
                 <h1 class="text-3xl font-bold text-gray-800">InOut</h1>
                 <p class="text-gray-500 text-sm mt-1">Employee Punch Portal</p>
             </div>
-            <input type="text" id="userId" placeholder="Login ID" class="p-4 border rounded-lg mb-4 bg-gray-50 outline-none focus:border-blue-500">
-            <input type="password" id="userPassword" placeholder="Password" class="p-4 border rounded-lg mb-8 bg-gray-50 outline-none focus:border-blue-500">
-            <button onclick="userLogin()" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition">Login</button>
+            
+            <!-- FIXED: Wrapped in a form to prevent mobile keyboard from refreshing the page -->
+            <form onsubmit="event.preventDefault(); userLogin();" class="flex flex-col">
+                <input type="text" id="userId" placeholder="Login ID" class="p-4 border rounded-lg mb-4 bg-gray-50 outline-none focus:border-blue-500" required>
+                <input type="password" id="userPassword" placeholder="Password" class="p-4 border rounded-lg mb-8 bg-gray-50 outline-none focus:border-blue-500" required>
+                <button type="submit" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition">Login</button>
+            </form>
         </div>
 
         <!-- APP VIEW -->
         <div id="appView" class="hidden flex-col h-full w-full bg-gray-50">
             <div class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-10">
                 <div class="flex items-center gap-2"><i class="fas fa-user-circle text-2xl"></i><span id="userNameHeader" class="font-bold">Welcome</span></div>
-                <button onclick="location.reload()"><i class="fas fa-sign-out-alt text-xl hover:text-red-300"></i></button>
+                <button type="button" onclick="location.reload()"><i class="fas fa-sign-out-alt text-xl hover:text-red-300"></i></button>
             </div>
 
             <div class="h-72 bg-black relative flex items-center justify-center overflow-hidden m-4 rounded-2xl shadow-inner border-4 border-gray-200">
@@ -47,14 +51,14 @@
             <div class="flex-grow flex flex-col justify-start px-6">
                 <!-- Registration Controls -->
                 <div id="registerControls" class="hidden flex-col items-center">
-                    <button onclick="registerFace()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition flex justify-center items-center gap-2"><i class="fas fa-camera"></i> REGISTER MY FACE</button>
+                    <button type="button" onclick="registerFace()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition flex justify-center items-center gap-2"><i class="fas fa-camera"></i> REGISTER MY FACE</button>
                 </div>
 
                 <!-- Punch Controls -->
                 <div id="punchControls" class="hidden flex-col gap-4">
                     <div class="grid grid-cols-2 gap-4">
-                        <button onclick="enforceGeofenceThenPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1"><i class="fas fa-sign-in-alt text-2xl"></i>PUNCH IN</button>
-                        <button onclick="enforceGeofenceThenPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1"><i class="fas fa-sign-out-alt text-2xl"></i>PUNCH OUT</button>
+                        <button type="button" onclick="enforceGeofenceThenPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1"><i class="fas fa-sign-in-alt text-2xl"></i>PUNCH IN</button>
+                        <button type="button" onclick="enforceGeofenceThenPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1"><i class="fas fa-sign-out-alt text-2xl"></i>PUNCH OUT</button>
                     </div>
                     <p id="punchStatusMsg" class="text-center text-sm font-medium text-gray-500 mt-2">Position face in frame and tap to punch.</p>
                 </div>
@@ -73,31 +77,35 @@
         const statusText = document.getElementById('statusText');
 
         async function userLogin() {
-            const loginId = document.getElementById('userId').value;
-            const password = document.getElementById('userPassword').value;
+            // Trim removes accidental spaces added by mobile autocorrect
+            const loginId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('userPassword').value.trim();
             
-            const { data, error } = await supabaseClient.from('employees').select('*').eq('login_id', loginId).eq('password', password).single();
-            if (error || !data) return alert("Invalid Login ID or Password");
-            
-            currentUser = data;
-            document.getElementById('userNameHeader').innerText = currentUser.name;
-            
-            // Fetch the Firm's Geofencing Settings
-            const { data: adminData } = await supabaseClient.from('admins').select('geo_lat, geo_lng, geo_radius').eq('id', currentUser.admin_id).single();
-            adminGeofence = adminData;
+            try {
+                const { data, error } = await supabaseClient.from('employees').select('*').eq('login_id', loginId).eq('password', password).single();
+                if (error || !data) return alert("Invalid Login ID or Password");
+                
+                currentUser = data;
+                document.getElementById('userNameHeader').innerText = currentUser.name;
+                
+                const { data: adminData } = await supabaseClient.from('admins').select('geo_lat, geo_lng, geo_radius').eq('id', currentUser.admin_id).single();
+                adminGeofence = adminData;
 
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('appView').classList.remove('hidden');
-            document.getElementById('appView').classList.add('flex');
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('appView').classList.remove('hidden');
+                document.getElementById('appView').classList.add('flex');
 
-            if (!currentUser.face_descriptor) {
-                document.getElementById('registerControls').classList.remove('hidden');
-                document.getElementById('registerControls').classList.add('flex');
-            } else {
-                document.getElementById('punchControls').classList.remove('hidden');
-                document.getElementById('punchControls').classList.add('flex');
+                if (!currentUser.face_descriptor) {
+                    document.getElementById('registerControls').classList.remove('hidden');
+                    document.getElementById('registerControls').classList.add('flex');
+                } else {
+                    document.getElementById('punchControls').classList.remove('hidden');
+                    document.getElementById('punchControls').classList.add('flex');
+                }
+                loadModels();
+            } catch(err) {
+                alert("Login Error: " + err.message);
             }
-            loadModels();
         }
 
         async function loadModels() {
@@ -128,21 +136,17 @@
             alert("Face Registered!"); location.reload();
         }
 
-        // --- MATH FOR GPS DISTANCE ---
         function getDistanceInMeters(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth radius in meters
+            const R = 6371e3;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
-        // --- STRICT GEOFENCE ENFORCER ---
         async function enforceGeofenceThenPunch(type) {
-            // Check if admin has set a geofence
             if(adminGeofence && adminGeofence.geo_lat && adminGeofence.geo_lng && adminGeofence.geo_radius) {
                 statusText.innerHTML = '<i class="fas fa-satellite-dish fa-spin mr-2 text-blue-400"></i>Acquiring GPS Signal...';
-                
                 if (!navigator.geolocation) {
                     statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
                     return alert("Geolocation is not supported by your device. Cannot verify location.");
@@ -151,15 +155,11 @@
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         const distance = getDistanceInMeters(pos.coords.latitude, pos.coords.longitude, adminGeofence.geo_lat, adminGeofence.geo_lng);
-                        
                         if(distance > adminGeofence.geo_radius) {
                             statusText.innerHTML = '<i class="fas fa-map-marker-alt mr-2 text-red-500"></i>Outside Boundary';
                             setTimeout(() => statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready', 3000);
-                            return alert(`PUNCH BLOCKED: You are ${Math.round(distance)} meters away from the office. You must be within ${adminGeofence.geo_radius} meters.`);
-                        } else {
-                            // Within radius, proceed to face scan
-                            recordAttendance(type);
-                        }
+                            return alert(`PUNCH BLOCKED: You are ${Math.round(distance)} meters away. You must be within ${adminGeofence.geo_radius} meters.`);
+                        } else recordAttendance(type);
                     }, 
                     (err) => {
                         statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
@@ -167,16 +167,11 @@
                     },
                     { enableHighAccuracy: true, timeout: 5000 }
                 );
-            } else {
-                // Admin hasn't setup geofencing, proceed normally
-                recordAttendance(type);
-            }
+            } else recordAttendance(type);
         }
 
-        // --- ATTENDANCE (Only runs if GPS clears) ---
         async function recordAttendance(type) {
             statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying Identity...';
-            
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
             if (!detection) {
                 statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
@@ -202,20 +197,15 @@
             if (type === 'in') {
                 if (punches.length > 0 && !punches[punches.length - 1].out) return alert("You are already Punched IN!");
                 punches.push({ in: now });
-
-                if (!record) {
-                    await supabaseClient.from('attendance').insert([{ employee_id: currentUser.id, date: dateOnly, punches: punches, total_hours: 0, status: 'Present' }]);
-                } else {
-                    await supabaseClient.from('attendance').update({ punches }).eq('id', record.id);
-                }
+                if (!record) await supabaseClient.from('attendance').insert([{ employee_id: currentUser.id, date: dateOnly, punches: punches, total_hours: 0, status: 'Present' }]);
+                else await supabaseClient.from('attendance').update({ punches }).eq('id', record.id);
+                
                 msgEl.innerHTML = `<span class="text-green-600 font-bold">Punched IN at ${new Date().toLocaleTimeString()}</span>`;
                 alert("Punch IN Successful!");
-
             } else {
                 if (punches.length === 0 || punches[punches.length - 1].out) return alert("You need to Punch IN first!");
                 let lastPunch = punches[punches.length - 1];
                 lastPunch.out = now;
-
                 let sessionHrs = (new Date(lastPunch.out).getTime() - new Date(lastPunch.in).getTime()) / 3600000;
                 totalHrs += sessionHrs;
 
