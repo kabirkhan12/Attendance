@@ -41,12 +41,29 @@
                 <!-- TAB 1: DASHBOARD -->
                 <div id="tab-dashboard" class="p-4 flex flex-col min-h-full">
                     <h2 class="text-sm font-bold text-gray-700 mb-2">Employee Summary</h2>
+                    
+                    <!-- SUMMARY FILTER BUTTONS -->
                     <div class="grid grid-cols-5 gap-2 mb-4 text-center">
-                        <button type="button" onclick="filterList('all')" class="border rounded py-2 bg-blue-50 border-blue-200 cursor-pointer"><p id="countAll" class="text-lg font-bold text-blue-600">0</p><p class="text-[9px] text-gray-500 font-bold">All Emp</p></button>
-                        <button type="button" onclick="filterList('in')" class="border rounded py-2 bg-white cursor-pointer"><p id="countIn" class="text-lg font-bold text-green-500">0</p><p class="text-[9px] text-gray-500 font-bold">Total In</p></button>
-                        <button type="button" onclick="filterList('out')" class="border rounded py-2 bg-white cursor-pointer"><p id="countOut" class="text-lg font-bold text-orange-500">0</p><p class="text-[9px] text-gray-500 font-bold">Total Out</p></button>
-                        <button type="button" onclick="filterList('late')" class="border rounded py-2 bg-white cursor-pointer"><p id="countLate" class="text-lg font-bold text-red-500">0</p><p class="text-[9px] text-gray-500 font-bold">Late</p></button>
-                        <button type="button" onclick="filterList('missing')" class="border rounded py-2 bg-white cursor-pointer"><p id="countMissing" class="text-lg font-bold text-gray-500">0</p><p class="text-[9px] text-gray-500 font-bold">Absent</p></button>
+                        <button type="button" id="btnFilter-all" onclick="filterList('all')" class="filter-btn ring-2 ring-blue-400 bg-gray-100 border rounded py-2 cursor-pointer transition">
+                            <p id="countAll" class="text-lg font-bold text-blue-600">0</p>
+                            <p class="text-[9px] text-gray-500 font-bold">All Emp</p>
+                        </button>
+                        <button type="button" id="btnFilter-in" onclick="filterList('in')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
+                            <p id="countIn" class="text-lg font-bold text-green-500">0</p>
+                            <p class="text-[9px] text-gray-500 font-bold">Total In</p>
+                        </button>
+                        <button type="button" id="btnFilter-out" onclick="filterList('out')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
+                            <p id="countOut" class="text-lg font-bold text-orange-500">0</p>
+                            <p class="text-[9px] text-gray-500 font-bold">Total Out</p>
+                        </button>
+                        <button type="button" id="btnFilter-late" onclick="filterList('late')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
+                            <p id="countLate" class="text-lg font-bold text-red-500">0</p>
+                            <p class="text-[9px] text-gray-500 font-bold">Late</p>
+                        </button>
+                        <button type="button" id="btnFilter-missing" onclick="filterList('missing')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
+                            <p id="countMissing" class="text-lg font-bold text-gray-500">0</p>
+                            <p class="text-[9px] text-gray-500 font-bold">Absent</p>
+                        </button>
                     </div>
 
                     <div class="relative mb-4">
@@ -61,7 +78,7 @@
                         <button type="button" onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition">+ Add Employee</button>
                     </div>
 
-                    <!-- Add Employee Form -->
+                    <!-- ADD EMPLOYEE FORM WITH DUAL SHIFT SUPPORT -->
                     <div id="addEmployeeForm" class="hidden mt-2 bg-white p-4 rounded-lg border shadow-sm">
                         <h3 class="font-bold mb-3 border-b pb-2">New Employee Details</h3>
                         <input type="text" id="eName" placeholder="Name" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
@@ -86,11 +103,31 @@
                             <option value="Other">Other (Specify)</option>
                         </select>
                         <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                        <select id="eTiming" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                            <option value="9:30 TO 19:00">9:30 TO 7:00 (Fixed)</option>
-                            <option value="10:00 TO 19:00">10:00 TO 7:00 (Fixed)</option>
-                            <option value="Flexi Shift">Flexi Shift (Dual Timings)</option>
+                        
+                        <!-- Shift Selector -->
+                        <select id="eTimingType" onchange="handleTimingChange()" class="w-full p-2 border rounded mb-2 text-sm bg-blue-50 font-bold text-blue-700">
+                            <option value="Single">Single Fixed Shift</option>
+                            <option value="Dual">Dual Shift (Flexi)</option>
                         </select>
+
+                        <div id="timingSingle" class="grid grid-cols-2 gap-2 mb-3">
+                            <div><label class="text-[10px] text-gray-500 font-bold">IN Time</label><input type="time" id="eStart1" value="09:30" class="w-full p-2 border rounded text-sm bg-gray-50"></div>
+                            <div><label class="text-[10px] text-gray-500 font-bold">OUT Time</label><input type="time" id="eEnd1" value="19:00" class="w-full p-2 border rounded text-sm bg-gray-50"></div>
+                        </div>
+
+                        <div id="timingDual" class="hidden mb-3 bg-gray-50 p-2 border rounded">
+                            <p class="text-[10px] font-bold text-gray-600 mb-1">Shift 1</p>
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <div><label class="text-[10px] text-gray-400">IN Time</label><input type="time" id="eDStart1" value="11:00" class="w-full p-2 border rounded text-sm"></div>
+                                <div><label class="text-[10px] text-gray-400">OUT Time</label><input type="time" id="eDEnd1" value="16:00" class="w-full p-2 border rounded text-sm"></div>
+                            </div>
+                            <p class="text-[10px] font-bold text-gray-600 mb-1 border-t pt-1">Shift 2</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label class="text-[10px] text-gray-400">IN Time</label><input type="time" id="eDStart2" value="19:00" class="w-full p-2 border rounded text-sm"></div>
+                                <div><label class="text-[10px] text-gray-400">OUT Time</label><input type="time" id="eDEnd2" value="00:00" class="w-full p-2 border rounded text-sm"></div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-2 mb-3">
                             <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm bg-gray-50">
                             <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm bg-gray-50">
@@ -253,14 +290,12 @@
                 }
             }
         }
-        // Run immediately on page load
         checkSession();
 
         // --- AUTHENTICATION ---
         async function adminLogin() {
             const email = document.getElementById('adminEmail').value.trim();
             const password = document.getElementById('adminPassword').value.trim();
-            
             if(!email || !password) return alert("Please enter credentials.");
 
             try {
@@ -268,8 +303,7 @@
                 if (error || !data) return alert("Invalid Admin ID or Password");
                 
                 currentAdmin = data;
-                localStorage.setItem('inout_admin_session', data.id); // Save Session
-
+                localStorage.setItem('inout_admin_session', data.id); 
                 document.getElementById('headerTitle').innerText = data.firm_name || 'Admin Portal';
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('mainAppView').classList.remove('hidden');
@@ -277,20 +311,18 @@
                 
                 startIdleTimer();
                 loadDashboard();
-            } catch(err) {
-                alert("Login Error: " + err.message);
-            }
+            } catch(err) { alert("Login Error: " + err.message); }
         }
 
         function logout() {
             currentAdmin = null;
-            localStorage.removeItem('inout_admin_session'); // Clear session
+            localStorage.removeItem('inout_admin_session'); 
             clearTimeout(inactivityTimer);
             document.getElementById('mainAppView').classList.add('hidden');
             document.getElementById('mainAppView').classList.remove('flex');
             document.getElementById('loginView').classList.remove('hidden');
             if (adminVideo.srcObject) adminVideo.srcObject.getTracks().forEach(t => t.stop());
-            switchTab('dashboard'); // reset tab view for next login
+            switchTab('dashboard'); 
         }
 
         function startIdleTimer() {
@@ -302,7 +334,6 @@
         function resetTimer() {
             clearTimeout(inactivityTimer);
             if(currentAdmin) {
-                // 30 Minutes = 1800000 ms
                 inactivityTimer = setTimeout(() => {
                     alert("Session expired due to 30 minutes of inactivity.");
                     logout();
@@ -310,7 +341,7 @@
             }
         }
 
-        // --- NAVIGATION ---
+        // --- NAVIGATION & FILTERS ---
         function switchTab(tabName) {
             ['dashboard', 'punch', 'reports', 'settings'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -325,26 +356,223 @@
             else if (adminVideo.srcObject) adminVideo.srcObject.getTracks().forEach(t => t.stop());
         }
 
+        function filterList(status) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-blue-400', 'bg-gray-100');
+                btn.classList.add('bg-white');
+            });
+            
+            const activeBtn = document.getElementById(`btnFilter-${status}`);
+            activeBtn.classList.add('ring-2', 'ring-blue-400', 'bg-gray-100');
+            activeBtn.classList.remove('bg-white');
+            
+            if (status === 'all') renderList(allEmployees);
+            else if (status === 'late') renderList(allEmployees.filter(e => e.isLate));
+            else renderList(allEmployees.filter(e => e.status === status));
+        }
+
         function toggleModal(modalId) { document.getElementById(modalId).classList.toggle('hidden'); }
 
-        // --- CALENDAR LOGIC ---
-        function openCalendarModal() {
-            const currentWOs = (currentAdmin.weekly_offs || "").split(',');
-            document.querySelectorAll('.wo-cb').forEach(cb => { cb.checked = currentWOs.includes(cb.value); });
-            toggleModal('calendarModal');
-        }
-
-        async function saveCalendar() {
-            const selectedWOs = Array.from(document.querySelectorAll('.wo-cb:checked')).map(cb => cb.value).join(',');
-            const { error } = await supabaseClient.from('admins').update({ weekly_offs: selectedWOs }).eq('id', currentAdmin.id);
-            if (error) return alert("Error saving Calendar: " + error.message);
+        // --- DASHBOARD LOGIC WITH 15 MIN GRACE & DUAL SHIFT ---
+        function formatTime(isoStr) { return isoStr ? new Date(isoStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'; }
+        
+        function calculateLate(empTiming, firstPunchInISO) {
+            if(!empTiming || !firstPunchInISO) return false;
             
-            currentAdmin.weekly_offs = selectedWOs;
-            alert("Weekly Offs saved successfully!");
-            toggleModal('calendarModal');
+            const shifts = empTiming.split(',');
+            const actualTime = new Date(firstPunchInISO);
+            
+            for (let shift of shifts) {
+                const [startStr, endStr] = shift.split('-');
+                if(!startStr || !endStr) continue;
+
+                const [expHour, expMin] = startStr.split(':').map(Number);
+                const [endHour, endMin] = endStr.split(':').map(Number);
+                
+                const expectedStart = new Date(firstPunchInISO);
+                expectedStart.setHours(expHour, expMin, 0, 0);
+                
+                const expectedEnd = new Date(firstPunchInISO);
+                expectedEnd.setHours(endHour, endMin, 0, 0);
+                if (endHour < expHour) expectedEnd.setDate(expectedEnd.getDate() + 1);
+
+                // 15 Minutes Grace Period applied to Start Time
+                const graceTime = new Date(expectedStart.getTime() + 15 * 60000);
+                
+                if (actualTime <= expectedEnd) {
+                    return actualTime > graceTime;
+                }
+            }
+            return true;
         }
 
-        // --- GEOFENCING LOGIC ---
+        async function loadDashboard() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                
+                const { data: employees, error: empErr } = await supabaseClient.from('employees').select('*').eq('admin_id', currentAdmin.id);
+                if (empErr) throw new Error("Employees Error: " + empErr.message);
+                
+                const { data: attendance, error: attErr } = await supabaseClient.from('attendance').select('*').eq('date', today);
+                if (attErr) throw new Error("Attendance Error: " + attErr.message);
+                
+                allEmployees = employees.map(emp => {
+                    const record = attendance?.find(a => a.employee_id === emp.id);
+                    let status = 'missing'; let totalHrs = 0; let punches = []; let isLate = false;
+                    
+                    if (record && record.punches && record.punches.length > 0) {
+                        punches = record.punches;
+                        status = punches[punches.length - 1].out ? 'out' : 'in';
+                        totalHrs = record.total_hours || 0;
+                        if(record.status === 'Late') isLate = true;
+                        else if(calculateLate(emp.work_timing, punches[0].in)) isLate = true;
+                    }
+                    if(record && record.status === 'Absent') status = 'missing';
+                    return { ...emp, status, isLate, totalHrs, punches, recordId: record?.id };
+                });
+                
+                updateStats(); 
+                filterList('all'); // Reset to all
+                
+            } catch (err) {
+                alert("Dashboard data error: " + err.message);
+                console.error(err);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('countAll').innerText = allEmployees.length;
+            document.getElementById('countIn').innerText = allEmployees.filter(e => e.status === 'in').length;
+            document.getElementById('countOut').innerText = allEmployees.filter(e => e.status === 'out').length;
+            document.getElementById('countMissing').innerText = allEmployees.filter(e => e.status === 'missing').length;
+            document.getElementById('countLate').innerText = allEmployees.filter(e => e.isLate).length;
+        }
+
+        function renderList(list) {
+            const container = document.getElementById('employeeList');
+            if(list.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-500 py-4 text-sm">No employees match this filter.</div>`;
+                return;
+            }
+
+            container.innerHTML = list.map(emp => {
+                let badge = emp.status === 'missing' ? `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-1 rounded font-bold uppercase">Absent</span>` : 
+                            emp.status === 'in' ? `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded font-bold uppercase">In</span>` : 
+                            `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded font-bold uppercase">Out</span>`;
+                if(emp.isLate) badge += ` <span class="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded font-bold uppercase ml-1">Late</span>`;
+
+                // Handle Display of Timings cleanly
+                const displayShift = emp.work_timing ? emp.work_timing.replace(',', ' & ') : 'Not Set';
+                
+                // Dynamic Punches display for Dual Shifts
+                let punchHTML = '';
+                if(emp.punches.length === 0) {
+                    punchHTML = `
+                    <div class="flex justify-between bg-gray-50 p-2 rounded border items-center">
+                        <div class="text-xs"><span class="text-gray-400 font-bold uppercase block text-[9px]">IN Time</span><span class="text-gray-400 font-bold">--:--</span></div>
+                        <div class="text-xs text-right"><span class="text-gray-400 font-bold uppercase block text-[9px]">OUT Time</span><span class="text-gray-400 font-bold">--:--</span></div>
+                    </div>`;
+                } else {
+                    punchHTML = emp.punches.map((p, idx) => {
+                        const inT = p.in ? formatTime(p.in) : '--:--';
+                        const outT = p.out ? formatTime(p.out) : '--:--';
+                        return `
+                        <div class="flex justify-between bg-gray-50 p-2 rounded border items-center mb-1">
+                            <div class="text-xs"><span class="text-gray-400 font-bold uppercase block text-[9px]">IN Time (Shift ${idx+1})</span><span class="text-green-600 font-bold">${inT}</span></div>
+                            <div class="text-xs text-right"><span class="text-gray-400 font-bold uppercase block text-[9px]">OUT Time</span><span class="text-orange-600 font-bold">${outT}</span></div>
+                        </div>`;
+                    }).join('');
+                }
+
+                return `
+                <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm flex flex-col relative">
+                    <div class="flex justify-between items-start mb-2">
+                        <div><p class="font-bold text-gray-800 text-sm leading-tight">${emp.name}</p><p class="text-[9px] text-gray-500 mt-1">Shift: ${displayShift}</p></div>
+                        <div class="text-right">
+                            ${badge}
+                            <div class="mt-2 text-right"><span class="text-[9px] text-gray-400 uppercase font-bold">Total Hrs: </span><span class="text-blue-600 font-bold text-xs">${emp.totalHrs.toFixed(2)}</span></div>
+                        </div>
+                    </div>
+                    
+                    ${punchHTML}
+                    
+                    <div class="flex gap-2 mt-3 pt-2 border-t border-dashed border-gray-200">
+                        <button type="button" onclick="overrideStatus('${emp.id}', 'Absent')" class="flex-1 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 py-1 rounded text-[10px] font-bold transition">Mark Absent</button>
+                        <button type="button" onclick="overrideStatus('${emp.id}', 'Late')" class="flex-1 bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-orange-600 py-1 rounded text-[10px] font-bold transition">Mark Late</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function searchEmployees() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allEmployees.filter(e => e.name.toLowerCase().includes(term) || (e.emp_code && e.emp_code.toLowerCase().includes(term)));
+            renderList(filtered);
+        }
+
+        async function overrideStatus(empId, statusStr) {
+            const dateOnly = new Date().toISOString().split('T')[0];
+            const empData = allEmployees.find(e => e.id === empId);
+            if(empData.recordId) await supabaseClient.from('attendance').update({ status: statusStr }).eq('id', empData.recordId);
+            else await supabaseClient.from('attendance').insert([{ employee_id: empId, date: dateOnly, status: statusStr, punches: [], total_hours: 0 }]);
+            alert(`Employee marked as ${statusStr}`);
+            loadDashboard();
+        }
+
+        // --- ADD EMPLOYEE LOGIC ---
+        function toggleAddForm() { document.getElementById('addEmployeeForm').classList.toggle('hidden'); }
+        
+        function handleDeptChange() {
+            const sel = document.getElementById('eDept'); const other = document.getElementById('eDeptOther');
+            if(sel.value === 'Other') other.classList.remove('hidden'); else other.classList.add('hidden');
+        }
+
+        function handleTimingChange() {
+            const type = document.getElementById('eTimingType').value;
+            if(type === 'Single') {
+                document.getElementById('timingSingle').classList.remove('hidden');
+                document.getElementById('timingDual').classList.add('hidden');
+            } else {
+                document.getElementById('timingSingle').classList.add('hidden');
+                document.getElementById('timingDual').classList.remove('hidden');
+            }
+        }
+
+        async function saveEmployee() {
+            let dept = document.getElementById('eDept').value === 'Other' ? document.getElementById('eDeptOther').value : document.getElementById('eDept').value;
+            
+            // Build the timing string based on Single vs Dual selection
+            let finalTimingStr = "";
+            const timingType = document.getElementById('eTimingType').value;
+            if (timingType === 'Single') {
+                finalTimingStr = `${document.getElementById('eStart1').value}-${document.getElementById('eEnd1').value}`;
+            } else {
+                finalTimingStr = `${document.getElementById('eDStart1').value}-${document.getElementById('eDEnd1').value},${document.getElementById('eDStart2').value}-${document.getElementById('eDEnd2').value}`;
+            }
+
+            const empData = {
+                admin_id: currentAdmin.id, name: document.getElementById('eName').value,
+                emp_code: document.getElementById('eCode').value, login_id: document.getElementById('eLogin').value,
+                password: document.getElementById('ePass').value, department: dept || 'General',
+                work_timing: finalTimingStr, monthly_salary: document.getElementById('eSalary').value || 0,
+                overtime_rate: document.getElementById('eRate').value || 0
+            };
+            
+            if(!empData.name || !empData.login_id || !empData.password) return alert("Name, Login ID, and Password are required!");
+
+            const { error } = await supabaseClient.from('employees').insert([empData]);
+            if (error) {
+                if (error.code === '23505') alert("This Login ID is already taken.");
+                else alert("Error: " + error.message);
+            } else { 
+                alert("Employee Saved Successfully!"); 
+                toggleAddForm(); 
+                document.querySelectorAll('#addEmployeeForm input').forEach(i => i.value = ''); 
+                loadDashboard(); 
+            }
+        }
+
+        // --- GEOFENCING SETTINGS ---
         function openLocationModal() {
             if(currentAdmin.geo_lat && currentAdmin.geo_lng) {
                 document.getElementById('locSavedView').classList.remove('hidden');
@@ -389,115 +617,21 @@
             toggleModal('locationModal');
         }
 
-        // --- DASHBOARD LOGIC ---
-        function formatTime(isoStr) { return isoStr ? new Date(isoStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'; }
-        
-        function calculateLate(empTiming, firstPunchInISO) {
-            if(!empTiming || empTiming === 'Flexi Shift' || !firstPunchInISO) return false;
-            const [expHour, expMin] = empTiming.split(' TO ')[0].split(':').map(Number);
-            const actualTime = new Date(firstPunchInISO);
-            const expectedTime = new Date(firstPunchInISO);
-            expectedTime.setHours(expHour, expMin, 0, 0);
-            expectedTime.setMinutes(expectedTime.getMinutes() + 10);
-            return actualTime > expectedTime;
+        // --- CALENDAR LOGIC ---
+        function openCalendarModal() {
+            const currentWOs = (currentAdmin.weekly_offs || "").split(',');
+            document.querySelectorAll('.wo-cb').forEach(cb => { cb.checked = currentWOs.includes(cb.value); });
+            toggleModal('calendarModal');
         }
 
-        async function loadDashboard() {
-            try {
-                const today = new Date().toISOString().split('T')[0];
-                
-                const { data: employees, error: empErr } = await supabaseClient.from('employees').select('*').eq('admin_id', currentAdmin.id);
-                if (empErr) throw new Error("Employees Error: " + empErr.message);
-                
-                const { data: attendance, error: attErr } = await supabaseClient.from('attendance').select('*').eq('date', today);
-                if (attErr) throw new Error("Attendance Error: " + attErr.message);
-                
-                allEmployees = employees.map(emp => {
-                    const record = attendance?.find(a => a.employee_id === emp.id);
-                    let status = 'missing'; let totalHrs = 0; let punches = []; let isLate = false;
-                    
-                    if (record && record.punches && record.punches.length > 0) {
-                        punches = record.punches;
-                        status = punches[punches.length - 1].out ? 'out' : 'in';
-                        totalHrs = record.total_hours || 0;
-                        if(record.status === 'Late') isLate = true;
-                        else if(calculateLate(emp.work_timing, punches[0].in)) isLate = true;
-                    }
-                    if(record && record.status === 'Absent') status = 'missing';
-                    return { ...emp, status, isLate, totalHrs, punches, recordId: record?.id };
-                });
-                
-                updateStats(); 
-                renderList(allEmployees);
-                
-            } catch (err) {
-                alert("Dashboard data error: " + err.message);
-                console.error(err);
-            }
-        }
-
-        function updateStats() {
-            document.getElementById('countAll').innerText = allEmployees.length;
-            document.getElementById('countIn').innerText = allEmployees.filter(e => e.status === 'in').length;
-            document.getElementById('countOut').innerText = allEmployees.filter(e => e.status === 'out').length;
-            document.getElementById('countMissing').innerText = allEmployees.filter(e => e.status === 'missing').length;
-            document.getElementById('countLate').innerText = allEmployees.filter(e => e.isLate).length;
-        }
-
-        function renderList(list) {
-            document.getElementById('employeeList').innerHTML = list.map(emp => {
-                const firstIn = emp.punches.length > 0 ? formatTime(emp.punches[0].in) : '--:--';
-                const lastOut = (emp.punches.length > 0 && emp.punches[emp.punches.length-1].out) ? formatTime(emp.punches[emp.punches.length-1].out) : '--:--';
-                let badge = emp.status === 'missing' ? `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-1 rounded font-bold uppercase">Absent</span>` : 
-                            emp.status === 'in' ? `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded font-bold uppercase">In</span>` : 
-                            `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded font-bold uppercase">Out</span>`;
-                if(emp.isLate) badge += ` <span class="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded font-bold uppercase ml-1">Late</span>`;
-
-                return `
-                <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm flex flex-col relative">
-                    <div class="flex justify-between items-start mb-2">
-                        <div><p class="font-bold text-gray-800 text-sm leading-tight">${emp.name}</p></div>
-                        <div>${badge}</div>
-                    </div>
-                    <div class="flex justify-between bg-gray-50 p-2 rounded border items-center">
-                        <div class="text-xs"><span class="text-gray-400 font-bold uppercase block text-[9px]">IN Time</span><span class="text-green-600 font-bold">${firstIn}</span></div>
-                        <div class="text-xs text-right"><span class="text-gray-400 font-bold uppercase block text-[9px]">OUT Time</span><span class="text-orange-600 font-bold">${lastOut}</span></div>
-                    </div>
-                    <div class="flex gap-2 mt-3 pt-2 border-t border-dashed border-gray-200">
-                        <button type="button" onclick="overrideStatus('${emp.id}', 'Absent')" class="flex-1 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 py-1 rounded text-[10px] font-bold">Mark Absent</button>
-                        <button type="button" onclick="overrideStatus('${emp.id}', 'Late')" class="flex-1 bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-orange-600 py-1 rounded text-[10px] font-bold">Mark Late</button>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        async function overrideStatus(empId, statusStr) {
-            const dateOnly = new Date().toISOString().split('T')[0];
-            const empData = allEmployees.find(e => e.id === empId);
-            if(empData.recordId) await supabaseClient.from('attendance').update({ status: statusStr }).eq('id', empData.recordId);
-            else await supabaseClient.from('attendance').insert([{ employee_id: empId, date: dateOnly, status: statusStr, punches: [], total_hours: 0 }]);
-            alert(`Employee marked as ${statusStr}`);
-            loadDashboard();
-        }
-
-        function toggleAddForm() { document.getElementById('addEmployeeForm').classList.toggle('hidden'); }
-        function handleDeptChange() {
-            const sel = document.getElementById('eDept'); const other = document.getElementById('eDeptOther');
-            if(sel.value === 'Other') other.classList.remove('hidden'); else other.classList.add('hidden');
-        }
-
-        async function saveEmployee() {
-            let dept = document.getElementById('eDept').value === 'Other' ? document.getElementById('eDeptOther').value : document.getElementById('eDept').value;
-            const empData = {
-                admin_id: currentAdmin.id, name: document.getElementById('eName').value,
-                emp_code: document.getElementById('eCode').value, login_id: document.getElementById('eLogin').value,
-                password: document.getElementById('ePass').value, department: dept || 'General',
-                work_timing: document.getElementById('eTiming').value, monthly_salary: document.getElementById('eSalary').value || 0,
-                overtime_rate: document.getElementById('eRate').value || 0
-            };
-            const { error } = await supabaseClient.from('employees').insert([empData]);
-            if (error) alert("Error: " + error.message);
-            else { alert("Saved!"); toggleAddForm(); loadDashboard(); }
+        async function saveCalendar() {
+            const selectedWOs = Array.from(document.querySelectorAll('.wo-cb:checked')).map(cb => cb.value).join(',');
+            const { error } = await supabaseClient.from('admins').update({ weekly_offs: selectedWOs }).eq('id', currentAdmin.id);
+            if (error) return alert("Error saving Calendar: " + error.message);
+            
+            currentAdmin.weekly_offs = selectedWOs;
+            alert("Weekly Offs saved successfully!");
+            toggleModal('calendarModal');
         }
 
         // --- ADMIN KIOSK PUNCH ---
