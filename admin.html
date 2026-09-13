@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>InOut Admin Dashboard</title>
+    <title>Attendance Admin Dashboard</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -192,7 +192,6 @@
                         </button>
                     </div>
 
-                    <!-- Add Others category for Passwords -->
                     <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase mt-4">Others</div>
                     <div class="flex flex-col w-full divide-y divide-gray-100">
                         <button type="button" onclick="toggleModal('changePasswordModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
@@ -315,7 +314,7 @@
 
         // --- SESSION MANAGEMENT ON LOAD ---
         async function checkSession() {
-            const savedAdminId = localStorage.getItem('inout_admin_session');
+            const savedAdminId = localStorage.getItem('attendance_admin_session');
             if (savedAdminId) {
                 try {
                     const { data, error } = await supabaseClient.from('admins').select('*').eq('id', savedAdminId).single();
@@ -328,7 +327,7 @@
                         startIdleTimer();
                         loadDashboard();
                     } else {
-                        localStorage.removeItem('inout_admin_session');
+                        localStorage.removeItem('attendance_admin_session');
                     }
                 } catch(err) {
                     console.error("Session Check Error: ", err);
@@ -348,7 +347,7 @@
                 if (error || !data) return alert("Invalid Admin ID or Password");
                 
                 currentAdmin = data;
-                localStorage.setItem('inout_admin_session', data.id); 
+                localStorage.setItem('attendance_admin_session', data.id); 
                 document.getElementById('headerTitle').innerText = data.firm_name || 'Admin Portal';
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('mainAppView').classList.remove('hidden');
@@ -361,7 +360,7 @@
 
         function logout() {
             currentAdmin = null;
-            localStorage.removeItem('inout_admin_session'); 
+            localStorage.removeItem('attendance_admin_session'); 
             clearTimeout(inactivityTimer);
             document.getElementById('mainAppView').classList.add('hidden');
             document.getElementById('mainAppView').classList.remove('flex');
@@ -461,7 +460,7 @@
                 expectedEnd.setHours(endHour, endMin, 0, 0);
                 if (endHour < expHour) expectedEnd.setDate(expectedEnd.getDate() + 1);
 
-                const graceTime = new Date(expectedStart.getTime() + 15 * 60000); // 15 Minutes Grace Period
+                const graceTime = new Date(expectedStart.getTime() + 15 * 60000); 
                 
                 if (actualTime <= expectedEnd) {
                     return actualTime > graceTime;
@@ -496,7 +495,7 @@
                 });
                 
                 updateStats(); 
-                filterList('all'); // Reset to all
+                filterList('all'); 
                 
             } catch (err) {
                 alert("Dashboard data error: " + err.message);
@@ -771,7 +770,7 @@
             if (reportType === 'Daily Time') {
                 csvContent = "Name,EMP Code,Department,Status,Total Hours,Basic Salary,Overtime Salary,Total Estimated Salary\n";
                 allEmployees.forEach(e => {
-                    let otHours = e.totalHrs > 8 ? e.totalHrs - 8 : 0; // Assuming 8 hours standard for daily OT
+                    let otHours = e.totalHrs > 8 ? e.totalHrs - 8 : 0; 
                     let otSalary = otHours * parseFloat(e.overtime_rate || 0);
                     let basic = parseFloat(e.monthly_salary || 0);
                     let total = basic + otSalary;
@@ -797,7 +796,7 @@
         }
 
         async function exportMonthlyCSV() {
-            const monthVal = document.getElementById('reportMonth').value; // YYYY-MM
+            const monthVal = document.getElementById('reportMonth').value; 
             if (!monthVal) return alert("Please select a month.");
 
             const { data: attendanceList, error } = await supabaseClient.from('attendance')
@@ -815,7 +814,7 @@
                 empAtt.forEach(record => {
                     let dailyHrs = record.total_hours || 0;
                     totalMonthHrs += dailyHrs;
-                    if (dailyHrs > 8) totalOTHours += (dailyHrs - 8); // Assuming 8 standard hours
+                    if (dailyHrs > 8) totalOTHours += (dailyHrs - 8); 
                 });
 
                 const basic = parseFloat(e.monthly_salary || 0);
