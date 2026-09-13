@@ -20,10 +20,13 @@
                 <h1 class="text-3xl font-bold text-gray-800">Admin Login</h1>
                 <p class="text-gray-500 text-sm mt-1">Manage your workforce</p>
             </div>
-            <input type="text" id="adminEmail" placeholder="Admin ID (e.g. gsm_admin)" class="p-4 border rounded-lg mb-4 bg-gray-50 outline-none focus:border-blue-500">
-            <input type="password" id="adminPassword" placeholder="Password" class="p-4 border rounded-lg mb-8 bg-gray-50 outline-none focus:border-blue-500">
-            <!-- FIXED: Added type="button" to prevent form submission refreshes -->
-            <button type="button" onclick="adminLogin()" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition">Login to Dashboard</button>
+            
+            <!-- FIXED: Wrapped in a form to prevent mobile keyboard from refreshing the page -->
+            <form onsubmit="event.preventDefault(); adminLogin();" class="flex flex-col">
+                <input type="text" id="adminEmail" placeholder="Admin ID (e.g. gsm_admin)" class="p-4 border rounded-lg mb-4 bg-gray-50 outline-none focus:border-blue-500" required>
+                <input type="password" id="adminPassword" placeholder="Password" class="p-4 border rounded-lg mb-8 bg-gray-50 outline-none focus:border-blue-500" required>
+                <button type="submit" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition">Login to Dashboard</button>
+            </form>
         </div>
 
         <!-- ================= MAIN APP VIEW ================= -->
@@ -93,7 +96,6 @@
                             <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm bg-gray-50">
                             <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm bg-gray-50">
                         </div>
-                        <!-- FIXED: Added type="button" -->
                         <button type="button" onclick="saveEmployee()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold shadow active:scale-95 transition">Save Employee</button>
                     </div>
                 </div>
@@ -227,29 +229,33 @@
         let allEmployees = [];
         let currentAdmin = null;
         let adminFaceMatcher = null;
-        let inactivityTimer; // Global timer variable
+        let inactivityTimer; 
         const adminVideo = document.getElementById('adminVideo');
 
         // --- AUTHENTICATION & IDLE TRACKER ---
         async function adminLogin() {
-            // FIXED: Added .trim() to eliminate invisible spaces that cause false rejections
+            // Trim removes accidental spaces added by mobile autocorrect
             const email = document.getElementById('adminEmail').value.trim();
             const password = document.getElementById('adminPassword').value.trim();
             
             if(!email || !password) return alert("Please enter credentials.");
 
-            const { data, error } = await supabaseClient.from('admins').select('*').eq('email', email).eq('password', password).single();
-            if (error || !data) return alert("Invalid Admin ID or Password");
-            
-            currentAdmin = data;
-            document.getElementById('headerTitle').innerText = data.firm_name || 'Admin Portal';
-            
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('mainAppView').classList.remove('hidden');
-            document.getElementById('mainAppView').classList.add('flex');
-            
-            startIdleTimer(); // Start 30 min countdown
-            loadDashboard();
+            try {
+                const { data, error } = await supabaseClient.from('admins').select('*').eq('email', email).eq('password', password).single();
+                if (error || !data) return alert("Invalid Admin ID or Password");
+                
+                currentAdmin = data;
+                document.getElementById('headerTitle').innerText = data.firm_name || 'Admin Portal';
+                
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('mainAppView').classList.remove('hidden');
+                document.getElementById('mainAppView').classList.add('flex');
+                
+                startIdleTimer();
+                loadDashboard();
+            } catch(err) {
+                alert("Login Error: " + err.message);
+            }
         }
 
         function logout() {
@@ -260,20 +266,15 @@
             if (adminVideo.srcObject) adminVideo.srcObject.getTracks().forEach(t => t.stop());
         }
 
-        // --- 30 MINUTE AUTO-LOGOUT LOGIC ---
         function startIdleTimer() {
-            window.onload = resetTimer;
-            document.onmousemove = resetTimer;
-            document.onkeypress = resetTimer;
-            document.ontouchstart = resetTimer;
-            document.onclick = resetTimer;
-            resetTimer(); 
+            window.onload = resetTimer; document.onmousemove = resetTimer;
+            document.onkeypress = resetTimer; document.ontouchstart = resetTimer;
+            document.onclick = resetTimer; resetTimer(); 
         }
 
         function resetTimer() {
             clearTimeout(inactivityTimer);
             if(currentAdmin) {
-                // 1800000 ms = 30 minutes
                 inactivityTimer = setTimeout(() => {
                     alert("Session expired due to 30 minutes of inactivity.");
                     logout();
@@ -288,7 +289,6 @@
                 document.getElementById(`tab-${t}`).classList.remove('flex');
                 document.getElementById(`nav-${t}`).className = "flex flex-col items-center hover:text-blue-600 w-1/4 text-gray-500";
             });
-
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
             document.getElementById(`tab-${tabName}`).classList.add('flex');
             document.getElementById(`nav-${tabName}`).classList.add('text-blue-600', 'font-bold');
@@ -302,16 +302,13 @@
         // --- CALENDAR LOGIC ---
         function openCalendarModal() {
             const currentWOs = (currentAdmin.weekly_offs || "").split(',');
-            document.querySelectorAll('.wo-cb').forEach(cb => {
-                cb.checked = currentWOs.includes(cb.value);
-            });
+            document.querySelectorAll('.wo-cb').forEach(cb => { cb.checked = currentWOs.includes(cb.value); });
             toggleModal('calendarModal');
         }
 
         async function saveCalendar() {
             const selectedWOs = Array.from(document.querySelectorAll('.wo-cb:checked')).map(cb => cb.value).join(',');
             const { error } = await supabaseClient.from('admins').update({ weekly_offs: selectedWOs }).eq('id', currentAdmin.id);
-            
             if (error) return alert("Error saving Calendar: " + error.message);
             
             currentAdmin.weekly_offs = selectedWOs;
@@ -329,9 +326,7 @@
                 document.getElementById('lblLat').innerText = currentAdmin.geo_lat;
                 document.getElementById('lblLng').innerText = currentAdmin.geo_lng;
                 document.getElementById('lblRad').innerText = currentAdmin.geo_radius;
-            } else {
-                editLocation();
-            }
+            } else editLocation();
             toggleModal('locationModal');
         }
 
@@ -354,7 +349,6 @@
             const lat = document.getElementById('locLat').value;
             const lng = document.getElementById('locLong').value;
             const rad = document.getElementById('locRadius').value;
-
             if(!lat || !lng || !rad) return alert("Please fill all location fields");
 
             const { error } = await supabaseClient.from('admins').update({
@@ -362,7 +356,6 @@
             }).eq('id', currentAdmin.id);
 
             if(error) return alert("Error saving location: " + error.message);
-            
             currentAdmin.geo_lat = lat; currentAdmin.geo_lng = lng; currentAdmin.geo_radius = rad;
             alert("Geofence activated successfully!");
             toggleModal('locationModal');
@@ -382,7 +375,6 @@
         }
 
         async function loadDashboard() {
-            // FIXED: Added try-catch to properly identify and alert if a database error is kicking you out
             try {
                 const today = new Date().toISOString().split('T')[0];
                 
@@ -512,12 +504,40 @@
             statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Scanning Face...';
 
             const detection = await faceapi.detectSingleFace(adminVideo).withFaceLandmarks().withFaceDescriptor();
-            if (!detection) return alert("No face detected!");
+            if (!detection) {
+                statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
+                return alert("No face detected! Look at camera.");
+            }
 
             const match = adminFaceMatcher.findBestMatch(detection.descriptor);
-            if (match.label === 'unknown') return alert("Face not recognized!");
+            if (match.label === 'unknown') {
+                statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
+                return alert("Face not recognized!");
+            }
 
             const emp = allEmployees.find(e => e.id === match.label);
+            
+            // Database Update for Admin Kiosk Punch
+            const now = new Date().toISOString();
+            const dateOnly = now.split('T')[0];
+            const { data: record } = await supabaseClient.from('attendance').select('*').eq('employee_id', emp.id).eq('date', dateOnly).single();
+            let punches = record ? record.punches || [] : [];
+            let totalHrs = record ? record.total_hours || 0 : 0;
+
+            if (type === 'in') {
+                if (punches.length > 0 && !punches[punches.length - 1].out) return alert(emp.name + " is already Punched IN!");
+                punches.push({ in: now });
+                if (!record) await supabaseClient.from('attendance').insert([{ employee_id: emp.id, date: dateOnly, punches, total_hours: 0, status: 'Present' }]);
+                else await supabaseClient.from('attendance').update({ punches }).eq('id', record.id);
+            } else {
+                if (punches.length === 0 || punches[punches.length - 1].out) return alert(emp.name + " needs to Punch IN first!");
+                let lastPunch = punches[punches.length - 1];
+                lastPunch.out = now;
+                let sessionHrs = (new Date(lastPunch.out).getTime() - new Date(lastPunch.in).getTime()) / 3600000;
+                totalHrs += sessionHrs;
+                await supabaseClient.from('attendance').update({ punches, total_hours: totalHrs }).eq('id', record.id);
+            }
+
             alert(`Admin Bypass Success! Punched ${type.toUpperCase()} for ${emp.name}`);
             statusEl.innerHTML = `<span class="text-green-400 font-bold">${emp.name} Punched ${type.toUpperCase()}!</span>`;
             setTimeout(() => { statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready'; loadDashboard(); }, 3000);
