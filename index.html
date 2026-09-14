@@ -2,22 +2,128 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Attendance System</title>
     <link rel="icon" href="data:,">
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Responsive container logic matching the dashboard */
+        @media (max-width: 1023px) {
+            .portal-container {
+                max-width: 28rem !important; /* max-w-md */
+                height: 100dvh !important;
+                border-radius: 0px !important;
+                box-shadow: none !important;
+            }
+            .mobile-stack {
+                flex-direction: column !important;
+            }
+            .desktop-banner {
+                display: none !important;
+            }
+        }
+        @media (min-width: 1024px) {
+            .portal-container {
+                max-width: 56rem !important; /* max-w-4xl landscape */
+                height: 34rem !important;
+                border-radius: 1.25rem !important;
+            }
+            .desktop-banner {
+                display: flex !important;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-100 flex justify-center h-screen">
-    <div class="w-full max-w-md bg-white h-full shadow-lg p-6 flex flex-col justify-center">
+<body class="bg-gray-200 flex justify-center items-center min-h-[100dvh] p-0 lg:p-6 transition-all select-none">
+    
+    <!-- RESPONSIVE DUAL-ENGINE PORTAL CARD -->
+    <div class="portal-container w-full bg-white shadow-2xl flex overflow-hidden relative transition-all duration-200">
         
-        <h1 class="text-3xl font-bold text-center text-blue-600 mb-12">Attendance System</h1>
+        <!-- DESKTOP LEFT BRANDING HERO (Strictly hidden on phones) -->
+        <div class="desktop-banner w-1/2 bg-slate-900 text-white p-10 flex-col justify-between flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold tracking-tight">Attendance System</h2>
+                    <p class="text-xs text-slate-400">Enterprise Biometric Management</p>
+                </div>
+            </div>
 
-        <div class="flex flex-col gap-6">
-            <h2 class="text-xl font-semibold text-center text-gray-700">Login As:</h2>
-            <a href="admin.html" class="w-full bg-gray-800 text-white text-center p-4 rounded-lg font-bold text-lg shadow-md active:scale-95 transition">Admin Portal</a>
-            <a href="user.html" class="w-full bg-green-600 text-white text-center p-4 rounded-lg font-bold text-lg shadow-md active:scale-95 transition">User Login</a>
+            <div class="space-y-4">
+                <h3 class="text-2xl font-bold leading-snug">Secure, touchless workforce tracking.</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    AI-powered facial verification, geolocation fences, dual-shift logistics, and automated payroll reporting.
+                </p>
+                <div class="flex gap-4 pt-2">
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                        <i class="fas fa-check-circle text-green-400"></i> Kiosk Scanner
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                        <i class="fas fa-check-circle text-green-400"></i> Offline Sync
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-[11px] text-slate-500 border-t border-slate-800 pt-4 flex justify-between items-center">
+                <span>Production Workspace</span>
+                <span class="flex items-center gap-1.5 text-green-400 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online Mode
+                </span>
+            </div>
+        </div>
+
+        <!-- PORTAL SELECTOR (Full width on mobile, right panel on desktop) -->
+        <div class="w-full lg:w-1/2 p-6 lg:p-12 flex flex-col justify-center">
+            
+            <div class="text-center mb-8">
+                <div class="lg:hidden w-14 h-14 mx-auto rounded-2xl bg-blue-600 flex items-center justify-center text-white text-2xl shadow-lg mb-4">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h1 class="text-2xl lg:text-3xl font-bold text-gray-800 tracking-tight">Welcome</h1>
+                <p class="text-gray-500 text-xs lg:text-sm mt-1">Select your access portal to continue</p>
+            </div>
+
+            <div class="flex flex-col gap-4 max-w-sm mx-auto w-full">
+                <!-- Admin Portal Link -->
+                <a href="admin.html" class="group flex items-center justify-between p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm lg:text-base shadow-md transition active:scale-95 border border-slate-700">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-lg bg-slate-800 group-hover:bg-slate-700 flex items-center justify-center text-blue-400 transition">
+                            <i class="fas fa-user-shield text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block leading-tight">Admin Portal</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Dashboard, kiosk & reporting</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs text-slate-500 group-hover:text-white transition"></i>
+                </a>
+
+                <!-- User Portal Link -->
+                <a href="user.html" class="group flex items-center justify-between p-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm lg:text-base shadow-md transition active:scale-95">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-lg bg-green-700 group-hover:bg-green-800 flex items-center justify-center text-white transition">
+                            <i class="fas fa-user-check text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block leading-tight">Employee Login</span>
+                            <span class="text-[10px] text-green-100 font-normal">Self-punch & personal logs</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs text-green-200 group-hover:text-white transition"></i>
+                </a>
+            </div>
+
+            <p class="text-center text-[10px] text-gray-400 mt-8">
+                Authorized Personnel Only &bull; All sessions monitored
+            </p>
         </div>
 
     </div>
+
 </body>
 </html>
