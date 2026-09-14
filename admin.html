@@ -5,13 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Attendance Admin Dashboard</title>
     <link rel="icon" href="data:,">
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- face-api.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Chart.js for embedded mobile analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom scrollbar styling for compact mobile containers */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @media print {
+            body { background: white; }
+            #mainAppView { height: auto; overflow: visible; }
+            header, footer, .no-print { display: none !important; }
+            .print-full { max-width: 100% !important; box-shadow: none !important; }
+        }
+    </style>
 </head>
 <body class="bg-gray-200 flex justify-center h-[100dvh]">
-    <div class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col overflow-hidden relative mx-auto">
+    <div class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col overflow-hidden relative mx-auto print-full">
         
         <!-- ================= LOGIN VIEW ================= -->
         <div id="loginView" class="p-8 flex flex-col justify-center h-full bg-white z-50 absolute inset-0">
@@ -24,70 +43,123 @@
             <form onsubmit="event.preventDefault(); adminLogin();" class="flex flex-col">
                 <input type="text" id="adminEmail" placeholder="Admin ID (e.g. gsm_admin)" class="p-4 border rounded-lg mb-4 bg-gray-50 outline-none focus:border-blue-500" required>
                 <input type="password" id="adminPassword" placeholder="Password" class="p-4 border rounded-lg mb-8 bg-gray-50 outline-none focus:border-blue-500" required>
-                <button type="submit" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition">Login to Dashboard</button>
+                <button type="submit" id="btnLoginSubmit" class="bg-blue-600 text-white p-4 rounded-lg font-bold shadow-lg active:scale-95 transition flex justify-center items-center gap-2">
+                    <span>Login to Dashboard</span>
+                </button>
             </form>
         </div>
 
         <!-- ================= MAIN APP VIEW ================= -->
         <div id="mainAppView" class="hidden flex-col h-full w-full">
             
+            <!-- HEADER -->
             <header class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-20 flex-shrink-0">
-                <div class="flex items-center gap-3"><h1 id="headerTitle" class="text-xl font-bold">Loading...</h1></div>
-                <button type="button" onclick="logout()"><i class="fas fa-sign-out-alt text-xl hover:text-red-300 transition"></i></button>
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-shield-alt text-lg opacity-80"></i>
+                    <div>
+                        <h1 id="headerTitle" class="text-base font-bold leading-tight truncate max-w-[210px]">Loading...</h1>
+                        <p id="headerSyncNotice" class="text-[10px] text-blue-200 flex items-center gap-1">
+                            <i class="fas fa-circle text-[7px] text-green-300"></i> Online System Active
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="button" title="Sync Offline Punch Queue" onclick="flushOfflineQueue()" class="relative text-white opacity-80 hover:opacity-100 transition text-sm">
+                        <i class="fas fa-sync-alt" id="syncIcon"></i>
+                        <span id="queueBadge" class="hidden absolute -top-2 -right-2 bg-red-500 text-[9px] font-bold px-1 rounded-full text-white">0</span>
+                    </button>
+                    <button type="button" title="Sign Out" onclick="logout()"><i class="fas fa-sign-out-alt text-lg hover:text-red-300 transition"></i></button>
+                </div>
             </header>
 
             <main class="flex-1 overflow-y-auto bg-gray-50">
                 
-                <!-- TAB 1: DASHBOARD -->
+                <!-- ================= TAB 1: DASHBOARD ================= -->
                 <div id="tab-dashboard" class="p-4 flex flex-col min-h-full">
-                    <h2 class="text-sm font-bold text-gray-700 mb-2">Employee Summary</h2>
                     
-                    <!-- SUMMARY FILTER BUTTONS -->
-                    <div class="grid grid-cols-5 gap-2 mb-4 text-center">
-                        <button type="button" id="btnFilter-all" onclick="filterList('all')" class="filter-btn ring-2 ring-blue-400 bg-gray-100 border rounded py-2 cursor-pointer transition">
-                            <p id="countAll" class="text-lg font-bold text-blue-600">0</p>
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-sm font-bold text-gray-700">Employee Summary</h2>
+                        <button type="button" onclick="toggleAnalytics()" class="text-xs text-blue-600 font-semibold flex items-center gap-1">
+                            <i class="fas fa-chart-pie"></i> <span id="analyticsToggleText">Analytics</span>
+                        </button>
+                    </div>
+                    
+                    <!-- SUMMARY CARDS -->
+                    <div class="grid grid-cols-5 gap-2 mb-3 text-center">
+                        <button type="button" id="btnFilter-all" onclick="filterList('all')" class="filter-btn ring-2 ring-blue-400 bg-gray-100 border rounded py-2 cursor-pointer transition shadow-xs">
+                            <p id="countAll" class="text-lg font-bold text-blue-600 leading-tight">0</p>
                             <p class="text-[9px] text-gray-500 font-bold">All Emp</p>
                         </button>
-                        <button type="button" id="btnFilter-in" onclick="filterList('in')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
-                            <p id="countIn" class="text-lg font-bold text-green-500">0</p>
+                        <button type="button" id="btnFilter-in" onclick="filterList('in')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countIn" class="text-lg font-bold text-green-500 leading-tight">0</p>
                             <p class="text-[9px] text-gray-500 font-bold">Total In</p>
                         </button>
-                        <button type="button" id="btnFilter-out" onclick="filterList('out')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
-                            <p id="countOut" class="text-lg font-bold text-orange-500">0</p>
+                        <button type="button" id="btnFilter-out" onclick="filterList('out')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countOut" class="text-lg font-bold text-orange-500 leading-tight">0</p>
                             <p class="text-[9px] text-gray-500 font-bold">Total Out</p>
                         </button>
-                        <button type="button" id="btnFilter-late" onclick="filterList('late')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
-                            <p id="countLate" class="text-lg font-bold text-red-500">0</p>
+                        <button type="button" id="btnFilter-late" onclick="filterList('late')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countLate" class="text-lg font-bold text-red-500 leading-tight">0</p>
                             <p class="text-[9px] text-gray-500 font-bold">Late</p>
                         </button>
-                        <button type="button" id="btnFilter-missing" onclick="filterList('missing')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition">
-                            <p id="countMissing" class="text-lg font-bold text-gray-500">0</p>
+                        <button type="button" id="btnFilter-missing" onclick="filterList('missing')" class="filter-btn border rounded py-2 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countMissing" class="text-lg font-bold text-gray-500 leading-tight">0</p>
                             <p class="text-[9px] text-gray-500 font-bold">Absent</p>
                         </button>
                     </div>
 
-                    <div class="relative mb-4">
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                        <input type="text" id="searchInput" onkeyup="searchEmployees()" placeholder="Search by name or code" class="w-full pl-10 p-2 border rounded-lg bg-white outline-none focus:border-blue-500 text-sm">
+                    <!-- MINI ANALYTICS CONTAINER (COLLAPSIBLE) -->
+                    <div id="analyticsContainer" class="hidden mb-3 bg-white p-3 rounded-lg border shadow-sm">
+                        <p class="text-[11px] font-bold text-gray-600 mb-2 flex items-center justify-between">
+                            <span>Today's Ratio</span>
+                            <span class="text-[9px] text-gray-400 font-normal">Real-time attendance</span>
+                        </p>
+                        <div class="h-32 w-full">
+                            <canvas id="todayRatioChart"></canvas>
+                        </div>
                     </div>
 
-                    <h2 class="text-sm font-bold text-gray-700 mb-2 border-b pb-1">Today's Attendance</h2>
+                    <!-- SEARCH AND BULK BAR -->
+                    <div class="flex gap-2 mb-3">
+                        <div class="relative flex-1">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            <input type="text" id="searchInput" onkeyup="searchEmployees()" placeholder="Search by name or code" class="w-full pl-10 p-2 border rounded-lg bg-white outline-none focus:border-blue-500 text-sm">
+                        </div>
+                        <button type="button" onclick="openBulkModal()" title="Bulk Actions" class="bg-gray-100 hover:bg-gray-200 border text-gray-600 px-3 rounded-lg flex items-center justify-center transition">
+                            <i class="fas fa-tasks"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-2 border-b pb-1">
+                        <h2 class="text-sm font-bold text-gray-700">Today's Attendance</h2>
+                        <span id="attendanceDateLabel" class="text-[10px] font-semibold text-gray-400">--</span>
+                    </div>
+
                     <div id="employeeList" class="flex flex-col gap-3 pb-6"></div>
 
                     <div class="mt-4 flex justify-center pb-4">
-                        <button type="button" onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition">+ Add Employee</button>
+                        <button type="button" onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
+                            <i class="fas fa-user-plus text-xs"></i> Add Employee
+                        </button>
                     </div>
 
-                    <!-- ADD EMPLOYEE FORM WITH DUAL SHIFT SUPPORT -->
-                    <div id="addEmployeeForm" class="hidden mt-2 bg-white p-4 rounded-lg border shadow-sm">
-                        <h3 class="font-bold mb-3 border-b pb-2">New Employee Details</h3>
-                        <input type="text" id="eName" placeholder="Name" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                        <input type="text" id="eCode" placeholder="EMP Code" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                            <input type="text" id="eLogin" placeholder="Login ID" class="p-2 border rounded text-sm bg-gray-50">
-                            <input type="text" id="ePass" placeholder="Password" class="p-2 border rounded text-sm bg-gray-50">
+                    <!-- ADD / EDIT EMPLOYEE FORM -->
+                    <div id="addEmployeeForm" class="hidden mt-2 bg-white p-4 rounded-lg border shadow-sm transition">
+                        <div class="flex justify-between items-center border-b pb-2 mb-3">
+                            <h3 id="formEmployeeTitle" class="font-bold text-gray-800 text-sm">New Employee Details</h3>
+                            <button type="button" onclick="toggleAddForm()" class="text-gray-400 hover:text-gray-600 text-xs"><i class="fas fa-times"></i></button>
                         </div>
-                        <select id="eDept" onchange="handleDeptChange()" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                        <input type="hidden" id="editEmpId" value="">
+                        
+                        <input type="text" id="eName" placeholder="Name" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50 outline-none focus:bg-white">
+                        <input type="text" id="eCode" placeholder="EMP Code" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50 outline-none focus:bg-white">
+                        
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <input type="text" id="eLogin" placeholder="Login ID" class="p-2 border rounded text-sm bg-gray-50 outline-none focus:bg-white">
+                            <input type="text" id="ePass" placeholder="Password" class="p-2 border rounded text-sm bg-gray-50 outline-none focus:bg-white">
+                        </div>
+                        
+                        <select id="eDept" onchange="handleDeptChange()" class="w-full p-2 border rounded mb-2 text-sm bg-gray-50 outline-none focus:bg-white">
                             <option value="General">General</option>
                             <option value="Service">Service</option>
                             <option value="Engineer">Engineer</option>
@@ -102,10 +174,10 @@
                             <option value="Waiter">Waiter</option>
                             <option value="Other">Other (Specify)</option>
                         </select>
-                        <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden w-full p-2 border rounded mb-2 text-sm bg-gray-50">
+                        <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden w-full p-2 border rounded mb-2 text-sm bg-gray-50 outline-none focus:bg-white">
                         
                         <!-- Shift Selector -->
-                        <select id="eTimingType" onchange="handleTimingChange()" class="w-full p-2 border rounded mb-2 text-sm bg-blue-50 font-bold text-blue-700">
+                        <select id="eTimingType" onchange="handleTimingChange()" class="w-full p-2 border rounded mb-2 text-sm bg-blue-50 font-bold text-blue-700 outline-none">
                             <option value="Single">Single Fixed Shift</option>
                             <option value="Dual">Dual Shift (Flexi)</option>
                         </select>
@@ -129,14 +201,18 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-2 mb-3">
-                            <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm bg-gray-50">
-                            <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm bg-gray-50">
+                            <input type="number" id="eSalary" placeholder="Base Salary" class="p-2 border rounded text-sm bg-gray-50 outline-none">
+                            <input type="number" id="eRate" placeholder="Hourly OT Rate" class="p-2 border rounded text-sm bg-gray-50 outline-none">
                         </div>
-                        <button type="button" onclick="saveEmployee()" class="w-full bg-green-600 text-white p-3 rounded-lg font-bold shadow active:scale-95 transition">Save Employee</button>
+
+                        <div class="flex gap-2">
+                            <button type="button" onclick="toggleAddForm()" class="flex-1 bg-gray-200 text-gray-700 p-2.5 rounded-lg font-bold text-xs">Cancel</button>
+                            <button type="button" id="btnSaveEmployee" onclick="saveEmployee()" class="flex-2 bg-green-600 text-white p-2.5 rounded-lg font-bold text-xs shadow active:scale-95 transition">Save Employee</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- TAB 2: ADMIN KIOSK PUNCH -->
+                <!-- ================= TAB 2: ADMIN KIOSK PUNCH ================= -->
                 <div id="tab-punch" class="hidden flex-col bg-gray-50 min-h-full">
                     <div class="h-72 bg-black relative flex items-center justify-center overflow-hidden m-4 rounded-2xl shadow-inner border-4 border-gray-200">
                         <video id="adminVideo" autoplay muted playsinline class="object-cover w-full h-full transform scale-x-[-1]"></video>
@@ -153,28 +229,189 @@
                     <div class="flex-grow flex flex-col justify-start px-6">
                         <p class="text-center text-sm font-medium text-gray-500 mb-4">Position face in frame (Location bypass active)</p>
                         <div class="grid grid-cols-2 gap-4">
-                            <button type="button" onclick="adminKioskPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center gap-1"><i class="fas fa-sign-in-alt text-2xl"></i>PUNCH IN</button>
-                            <button type="button" onclick="adminKioskPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center gap-1"><i class="fas fa-sign-out-alt text-2xl"></i>PUNCH OUT</button>
+                            <button type="button" onclick="adminKioskPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
+                                <i class="fas fa-sign-in-alt text-2xl"></i>PUNCH IN
+                            </button>
+                            <button type="button" onclick="adminKioskPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
+                                <i class="fas fa-sign-out-alt text-2xl"></i>PUNCH OUT
+                            </button>
+                        </div>
+                        
+                        <div class="mt-6 bg-white p-3 rounded-xl border border-gray-200 text-xs text-gray-600 shadow-xs">
+                            <div class="flex justify-between items-center mb-1 font-bold">
+                                <span><i class="fas fa-id-card-alt text-blue-500 mr-1"></i> Face Descriptor Register</span>
+                                <span id="faceRegisteredCount" class="text-blue-600">0 loaded</span>
+                            </div>
+                            <p class="text-[10px] text-gray-400">Employees without face recognition registered can be trained via Employee Options.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- TAB 3: REPORTS -->
+                <!-- ================= TAB 3: REPORTS ================= -->
                 <div id="tab-reports" class="hidden flex-col bg-white min-h-full">
-                    <div class="flex flex-col w-full divide-y divide-gray-100">
-                        <button type="button" onclick="exportCSV('Daily Time')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
-                            <i class="far fa-calendar-day text-gray-400 w-5"></i> Daily Time Tracking Report
+                    
+                    <!-- REPORT SUB-NAVIGATION TABS -->
+                    <div class="flex border-b bg-gray-50 text-xs font-bold text-gray-600">
+                        <button type="button" id="subtab-btn-daily" onclick="switchReportSubTab('daily')" class="flex-1 py-3 border-b-2 border-blue-600 text-blue-600 bg-white">
+                            Daily Report
                         </button>
-                        <button type="button" onclick="exportCSV('Punch Log')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
-                            <i class="fas fa-file-invoice text-gray-400 w-5"></i> Punch Log Report
+                        <button type="button" id="subtab-btn-monthly" onclick="switchReportSubTab('monthly')" class="flex-1 py-3 text-gray-500 hover:text-blue-600">
+                            Monthly Summary
                         </button>
-                        <button type="button" onclick="toggleModal('monthlyReportModal')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
-                            <i class="far fa-calendar-alt text-gray-400 w-5"></i> Monthly Time Tracking Report
+                        <button type="button" id="subtab-btn-exports" onclick="switchReportSubTab('exports')" class="flex-1 py-3 text-gray-500 hover:text-blue-600">
+                            Quick Exports
                         </button>
                     </div>
+
+                    <!-- ON-SCREEN DAILY REPORT VIEW -->
+                    <div id="report-view-daily" class="p-4 flex flex-col flex-1">
+                        <div class="flex items-center gap-2 mb-3">
+                            <input type="date" id="dailyReportDate" onchange="generateDailyReport()" class="flex-1 p-2 border rounded-lg text-xs bg-gray-50 font-medium">
+                            <button type="button" onclick="generateDailyReport()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-blue-700">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button type="button" onclick="window.print()" class="bg-gray-100 border text-gray-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-200">
+                                <i class="fas fa-print"></i>
+                            </button>
+                        </div>
+
+                        <!-- DAILY KPI SUMMARY CARDS -->
+                        <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+                            <div class="bg-blue-50 border border-blue-100 p-2 rounded-lg">
+                                <p id="dailyKpiEmp" class="text-base font-bold text-blue-700">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Total</p>
+                            </div>
+                            <div class="bg-green-50 border border-green-100 p-2 rounded-lg">
+                                <p id="dailyKpiPresent" class="text-base font-bold text-green-700">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Present</p>
+                            </div>
+                            <div class="bg-red-50 border border-red-100 p-2 rounded-lg">
+                                <p id="dailyKpiAbsent" class="text-base font-bold text-red-600">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Absent</p>
+                            </div>
+                            <div class="bg-orange-50 border border-orange-100 p-2 rounded-lg">
+                                <p id="dailyKpiLate" class="text-base font-bold text-orange-600">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Late</p>
+                            </div>
+                            <div class="bg-indigo-50 border border-indigo-100 p-2 rounded-lg">
+                                <p id="dailyKpiHours" class="text-base font-bold text-indigo-700">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Hours</p>
+                            </div>
+                            <div class="bg-purple-50 border border-purple-100 p-2 rounded-lg">
+                                <p id="dailyKpiOtHours" class="text-base font-bold text-purple-700">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">OT Hours</p>
+                            </div>
+                        </div>
+
+                        <!-- FILTERS -->
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <select id="dailyFilterDept" onchange="renderDailyReportTable()" class="p-1.5 border rounded text-xs bg-gray-50">
+                                <option value="All">All Depts</option>
+                            </select>
+                            <select id="dailyFilterStatus" onchange="renderDailyReportTable()" class="p-1.5 border rounded text-xs bg-gray-50">
+                                <option value="All">All Statuses</option>
+                                <option value="Present">Present</option>
+                                <option value="Absent">Absent</option>
+                                <option value="Late">Late</option>
+                            </select>
+                        </div>
+
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[11px] font-bold text-gray-700">Daily Roster breakdown</span>
+                            <button type="button" onclick="exportCSV('Daily Time')" class="text-xs text-blue-600 font-bold hover:underline">
+                                <i class="fas fa-file-csv mr-1"></i>Export CSV
+                            </button>
+                        </div>
+
+                        <!-- DAILY TABLE -->
+                        <div class="overflow-x-auto border rounded-lg flex-1 bg-white">
+                            <table class="w-full text-left text-[11px]">
+                                <thead class="bg-gray-100 text-gray-600 border-b">
+                                    <tr>
+                                        <th class="p-2">Employee</th>
+                                        <th class="p-2">Status</th>
+                                        <th class="p-2">Shift 1</th>
+                                        <th class="p-2">Shift 2</th>
+                                        <th class="p-2 text-right">Hrs / OT</th>
+                                        <th class="p-2 text-right">Est. Day ₹</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dailyReportTableBody" class="divide-y divide-gray-100">
+                                    <tr><td colspan="6" class="text-center p-4 text-gray-400">Loading daily report...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ON-SCREEN MONTHLY REPORT VIEW -->
+                    <div id="report-view-monthly" class="hidden p-4 flex flex-col flex-1">
+                        <div class="flex items-center gap-2 mb-3">
+                            <input type="month" id="monthlyReportPicker" onchange="generateMonthlyReport()" class="flex-1 p-2 border rounded-lg text-xs bg-gray-50 font-medium">
+                            <button type="button" onclick="generateMonthlyReport()" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-blue-700">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                            <button type="button" onclick="exportMonthlyCSV()" class="bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-green-700" title="Export CSV">
+                                <i class="fas fa-file-excel"></i>
+                            </button>
+                        </div>
+
+                        <!-- MONTHLY STATS SUMMARY CARDS -->
+                        <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+                            <div class="bg-blue-50 border border-blue-100 p-2 rounded-lg">
+                                <p id="monthlyKpiPresents" class="text-base font-bold text-blue-700">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Total Present</p>
+                            </div>
+                            <div class="bg-purple-50 border border-purple-100 p-2 rounded-lg">
+                                <p id="monthlyKpiOtHours" class="text-base font-bold text-purple-700">0h</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Total OT</p>
+                            </div>
+                            <div class="bg-emerald-50 border border-emerald-100 p-2 rounded-lg">
+                                <p id="monthlyKpiPayroll" class="text-base font-bold text-emerald-700">₹0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Est. Payroll</p>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[11px] font-bold text-gray-700">Monthly Payroll & Attendance</span>
+                        </div>
+
+                        <div class="overflow-x-auto border rounded-lg flex-1 bg-white">
+                            <table class="w-full text-left text-[11px]">
+                                <thead class="bg-gray-100 text-gray-600 border-b">
+                                    <tr>
+                                        <th class="p-2">Employee</th>
+                                        <th class="p-2">P / A / L</th>
+                                        <th class="p-2 text-right">Hrs (OT)</th>
+                                        <th class="p-2 text-right">Basic / OT ₹</th>
+                                        <th class="p-2 text-right">Gross ₹</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monthlyReportTableBody" class="divide-y divide-gray-100">
+                                    <tr><td colspan="5" class="text-center p-4 text-gray-400">Select month to review data.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ORIGINAL QUICK EXPORT MENU -->
+                    <div id="report-view-exports" class="hidden flex flex-col w-full divide-y divide-gray-100">
+                        <button type="button" onclick="exportCSV('Daily Time')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="far fa-calendar-day text-gray-400 w-5"></i> Daily Time Tracking Report (CSV)
+                        </button>
+                        <button type="button" onclick="exportCSV('Punch Log')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="fas fa-file-invoice text-gray-400 w-5"></i> Punch Log Report (CSV)
+                        </button>
+                        <button type="button" onclick="toggleModal('monthlyReportModal')" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="far fa-calendar-alt text-gray-400 w-5"></i> Monthly Time Tracking Report (Modal)
+                        </button>
+                        <button type="button" onclick="exportAuditLogCSV()" class="flex items-center gap-4 p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <i class="fas fa-history text-gray-400 w-5"></i> System Audit Trail (CSV)
+                        </button>
+                    </div>
+
                 </div>
 
-                <!-- TAB 4: SETTINGS -->
+                <!-- ================= TAB 4: SETTINGS ================= -->
                 <div id="tab-settings" class="hidden flex-col bg-white min-h-full">
                     <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase">Management</div>
                     <div class="flex flex-col w-full divide-y divide-gray-100">
@@ -186,16 +423,24 @@
                             <div class="flex items-center gap-4"><i class="far fa-calendar-alt text-purple-500 w-5"></i> Calendar (Weekly Offs)</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="toggleModal('salaryModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                        <button type="button" onclick="openSalaryModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
                             <div class="flex items-center gap-4"><i class="fas fa-money-check-alt text-gray-400 w-5"></i> Salary & Overtime Config</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button type="button" onclick="openLeaveModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-plane-departure text-amber-500 w-5"></i> Leave Management</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
                     </div>
 
-                    <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase mt-4">Others</div>
+                    <div class="bg-gray-100 p-2 px-4 text-xs font-bold text-gray-600 uppercase mt-4">Data & Security</div>
                     <div class="flex flex-col w-full divide-y divide-gray-100">
                         <button type="button" onclick="toggleModal('changePasswordModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
                             <div class="flex items-center gap-4"><i class="fas fa-lock text-gray-400 w-5"></i> Change Password</div>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </button>
+                        <button type="button" onclick="backupSystemData()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700">
+                            <div class="flex items-center gap-4"><i class="fas fa-download text-teal-600 w-5"></i> Backup System JSON</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
                     </div>
@@ -259,20 +504,22 @@
             </div>
         </div>
 
-        <!-- Salary Modal -->
+        <!-- Salary Modal (Actual Database Persistence) -->
         <div id="salaryModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
                 <h3 class="font-bold text-lg mb-4 text-gray-800"><i class="fas fa-money-bill-wave text-green-500 mr-2"></i> Salary Config</h3>
-                <input type="number" placeholder="Standard Working Hours (e.g. 8)" class="w-full p-3 border rounded mb-3 text-sm bg-gray-50">
-                <input type="number" placeholder="Global Overtime Multiplier (e.g. 1.5)" class="w-full p-3 border rounded mb-4 text-sm bg-gray-50">
+                <label class="text-[10px] text-gray-500 font-bold">Standard Work Hours (Daily)</label>
+                <input type="number" id="cfgStandardHours" placeholder="Standard Working Hours (e.g. 8)" class="w-full p-3 border rounded mb-3 text-sm bg-gray-50">
+                <label class="text-[10px] text-gray-500 font-bold">Global OT Multiplier</label>
+                <input type="number" step="0.1" id="cfgOtMultiplier" placeholder="Global Overtime Multiplier (e.g. 1.5)" class="w-full p-3 border rounded mb-4 text-sm bg-gray-50">
                 <div class="flex gap-2">
                     <button type="button" onclick="toggleModal('salaryModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-sm">Cancel</button>
-                    <button type="button" onclick="alert('Saved!'); toggleModal('salaryModal');" class="flex-1 bg-green-600 text-white py-2 rounded font-bold text-sm">Save</button>
+                    <button type="button" onclick="saveSalaryConfig()" class="flex-1 bg-green-600 text-white py-2 rounded font-bold text-sm">Save</button>
                 </div>
             </div>
         </div>
 
-        <!-- Monthly Report Modal -->
+        <!-- Monthly Report Modal (Legacy compatibility) -->
         <div id="monthlyReportModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
                 <h3 class="font-bold text-lg mb-4 text-gray-800"><i class="far fa-calendar-alt text-blue-500 mr-2"></i> Monthly Report</h3>
@@ -299,18 +546,146 @@
             </div>
         </div>
 
+        <!-- ATTENDANCE CORRECTION MODAL -->
+        <div id="punchCorrectionModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-3 border-b pb-2">
+                    <h3 class="font-bold text-base text-gray-800"><i class="fas fa-edit text-blue-500 mr-2"></i>Edit Attendance</h3>
+                    <button type="button" onclick="toggleModal('punchCorrectionModal')" class="text-gray-400 text-sm"><i class="fas fa-times"></i></button>
+                </div>
+                <p id="correctEmpName" class="text-xs font-bold text-gray-600 mb-2">--</p>
+                <input type="hidden" id="correctEmpId" value="">
+                <input type="hidden" id="correctRecordId" value="">
+
+                <div class="mb-3">
+                    <label class="text-[10px] text-gray-500 font-bold block mb-1">Attendance Status</label>
+                    <select id="correctStatus" class="w-full p-2 border rounded text-xs bg-gray-50">
+                        <option value="Present">Present</option>
+                        <option value="Late">Late</option>
+                        <option value="Half-Day">Half-Day</option>
+                        <option value="Absent">Absent</option>
+                        <option value="Paid Leave">Paid Leave</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-[10px] text-gray-500 font-bold block mb-1">Shift 1 (IN / OUT)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="time" id="correctS1In" class="p-2 border rounded text-xs bg-gray-50">
+                        <input type="time" id="correctS1Out" class="p-2 border rounded text-xs bg-gray-50">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-[10px] text-gray-500 font-bold block mb-1">Shift 2 (IN / OUT - Optional)</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="time" id="correctS2In" class="p-2 border rounded text-xs bg-gray-50">
+                        <input type="time" id="correctS2Out" class="p-2 border rounded text-xs bg-gray-50">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                        <input type="checkbox" id="correctApproveOt" class="w-4 h-4 text-blue-600 rounded">
+                        <span>Approve Overtime for this Date</span>
+                    </label>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-[10px] text-gray-500 font-bold block mb-1">Correction Note</label>
+                    <input type="text" id="correctNote" placeholder="Reason for manual adjustment" class="w-full p-2 border rounded text-xs bg-gray-50">
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleModal('punchCorrectionModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-xs">Cancel</button>
+                    <button type="button" onclick="savePunchCorrection()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-xs">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TRAIN FACE MODAL -->
+        <div id="faceTrainingModal" class="hidden absolute inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm flex flex-col items-center">
+                <h3 class="font-bold text-sm text-gray-800 mb-2"><i class="fas fa-camera text-blue-600 mr-2"></i>Train Face Model</h3>
+                <p id="trainFaceEmpName" class="text-xs text-gray-500 mb-3 text-center">Center face inside the circle</p>
+                
+                <div class="w-56 h-56 bg-black relative rounded-2xl overflow-hidden mb-3 border-2 border-blue-500">
+                    <video id="trainVideo" autoplay muted playsinline class="object-cover w-full h-full transform scale-x-[-1]"></video>
+                </div>
+
+                <p id="trainStatus" class="text-[11px] font-semibold text-gray-600 mb-4 text-center">Waiting for snapshot...</p>
+
+                <div class="flex gap-2 w-full">
+                    <button type="button" onclick="closeTrainModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-xs">Close</button>
+                    <button type="button" id="btnCaptureDescriptor" onclick="captureAndSaveFaceDescriptor()" class="flex-1 bg-green-600 text-white py-2 rounded font-bold text-xs">Register Face</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BULK ATTENDANCE ACTIONS MODAL -->
+        <div id="bulkModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm">
+                <h3 class="font-bold text-base text-gray-800 mb-3"><i class="fas fa-tasks text-blue-600 mr-2"></i>Bulk Actions</h3>
+                <p class="text-xs text-gray-500 mb-4">Perform bulk attendance actions for today.</p>
+                <div class="flex flex-col gap-2 mb-4">
+                    <button type="button" onclick="bulkMarkAbsent()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 font-bold p-3 rounded-lg text-xs text-left flex items-center gap-2">
+                        <i class="fas fa-user-times"></i> Mark All Missing as Absent
+                    </button>
+                    <button type="button" onclick="bulkApproveOt()" class="w-full bg-green-50 hover:bg-green-100 text-green-700 font-bold p-3 rounded-lg text-xs text-left flex items-center gap-2">
+                        <i class="fas fa-check-double"></i> Approve Overtime for all Eligible
+                    </button>
+                </div>
+                <button type="button" onclick="toggleModal('bulkModal')" class="w-full bg-gray-200 text-gray-700 py-2 rounded font-bold text-xs">Close</button>
+            </div>
+        </div>
+
+        <!-- LEAVE MANAGEMENT MODAL -->
+        <div id="leaveModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+                <h3 class="font-bold text-base text-gray-800 mb-3"><i class="fas fa-plane-departure text-amber-500 mr-2"></i>Record Employee Leave</h3>
+                <div class="flex flex-col gap-2 mb-4">
+                    <label class="text-[10px] text-gray-500 font-bold">Select Employee</label>
+                    <select id="leaveEmpSelect" class="p-2 border rounded text-xs bg-gray-50"></select>
+
+                    <label class="text-[10px] text-gray-500 font-bold">Leave Date</label>
+                    <input type="date" id="leaveDateInput" class="p-2 border rounded text-xs bg-gray-50">
+
+                    <label class="text-[10px] text-gray-500 font-bold">Leave Type</label>
+                    <select id="leaveTypeSelect" class="p-2 border rounded text-xs bg-gray-50">
+                        <option value="Paid Leave">Paid Leave</option>
+                        <option value="Casual Leave">Casual Leave</option>
+                        <option value="Sick Leave">Sick Leave</option>
+                        <option value="Unpaid Leave">Unpaid Leave</option>
+                    </select>
+
+                    <label class="text-[10px] text-gray-500 font-bold">Reason / Comment</label>
+                    <input type="text" id="leaveReasonInput" placeholder="Medical, vacation, etc." class="p-2 border rounded text-xs bg-gray-50">
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleModal('leaveModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-xs">Close</button>
+                    <button type="button" onclick="submitLeaveRecord()" class="flex-1 bg-amber-500 text-white py-2 rounded font-bold text-xs">Record Leave</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
+    <!-- ================= JAVASCRIPT ================= -->
     <script>
+        // Supabase configuration
         const supabaseUrl = 'https://cighgvyjwaagdhmiohlb.supabase.co';
         const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
         
+        // Runtime application state
         let allEmployees = [];
         let currentAdmin = null;
         let adminFaceMatcher = null;
         let inactivityTimer; 
+        let todayChartInstance = null;
+        let trainingTargetEmp = null;
         const adminVideo = document.getElementById('adminVideo');
+        const trainVideo = document.getElementById('trainVideo');
 
         // --- SESSION MANAGEMENT ON LOAD ---
         async function checkSession() {
@@ -320,12 +695,10 @@
                     const { data, error } = await supabaseClient.from('admins').select('*').eq('id', savedAdminId).single();
                     if (data && !error) {
                         currentAdmin = data;
-                        document.getElementById('headerTitle').innerText = data.firm_name || 'Admin Portal';
-                        document.getElementById('loginView').classList.add('hidden');
-                        document.getElementById('mainAppView').classList.remove('hidden');
-                        document.getElementById('mainAppView').classList.add('flex');
+                        applyAdminDetails(data);
                         startIdleTimer();
-                        loadDashboard();
+                        await loadDashboard();
+                        checkOfflineQueue();
                     } else {
                         localStorage.removeItem('attendance_admin_session');
                     }
@@ -336,6 +709,21 @@
         }
         checkSession();
 
+        function applyAdminDetails(admin) {
+            document.getElementById('headerTitle').innerText = admin.firm_name || 'Admin Portal';
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('mainAppView').classList.remove('hidden');
+            document.getElementById('mainAppView').classList.add('flex');
+            
+            // Set current date in labels
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('attendanceDateLabel').innerText = todayStr;
+            document.getElementById('dailyReportDate').value = todayStr;
+            document.getElementById('reportMonth').value = todayStr.substring(0, 7);
+            document.getElementById('monthlyReportPicker').value = todayStr.substring(0, 7);
+            document.getElementById('leaveDateInput').value = todayStr;
+        }
+
         // --- AUTHENTICATION ---
         async function adminLogin() {
             const email = document.getElementById('adminEmail').value.trim();
@@ -343,29 +731,29 @@
             if(!email || !password) return alert("Please enter credentials.");
 
             try {
+                // Support direct match or future hashed auth compatibility
                 const { data, error } = await supabaseClient.from('admins').select('*').eq('email', email).eq('password', password).single();
                 if (error || !data) return alert("Invalid Admin ID or Password");
                 
                 currentAdmin = data;
                 localStorage.setItem('attendance_admin_session', data.id); 
-                document.getElementById('headerTitle').innerText = data.firm_name || 'Admin Portal';
-                document.getElementById('loginView').classList.add('hidden');
-                document.getElementById('mainAppView').classList.remove('hidden');
-                document.getElementById('mainAppView').classList.add('flex');
-                
+                applyAdminDetails(data);
                 startIdleTimer();
-                loadDashboard();
+                await loadDashboard();
+                logAudit("Admin Login", { email: data.email });
             } catch(err) { alert("Login Error: " + err.message); }
         }
 
         function logout() {
+            if(currentAdmin) logAudit("Admin Logout", { admin_id: currentAdmin.id });
             currentAdmin = null;
             localStorage.removeItem('attendance_admin_session'); 
             clearTimeout(inactivityTimer);
             document.getElementById('mainAppView').classList.add('hidden');
             document.getElementById('mainAppView').classList.remove('flex');
             document.getElementById('loginView').classList.remove('hidden');
-            if (adminVideo.srcObject) adminVideo.srcObject.getTracks().forEach(t => t.stop());
+            stopVideoStream(adminVideo);
+            stopVideoStream(trainVideo);
             switchTab('dashboard'); 
         }
 
@@ -403,9 +791,10 @@
             document.getElementById('newPass').value = '';
             document.getElementById('confPass').value = '';
             toggleModal('changePasswordModal');
+            logAudit("Password Change", { admin_id: currentAdmin.id });
         }
 
-        // --- NAVIGATION & FILTERS ---
+        // --- NAVIGATION & TABS ---
         function switchTab(tabName) {
             ['dashboard', 'punch', 'reports', 'settings'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -417,27 +806,42 @@
             document.getElementById(`nav-${tabName}`).classList.add('text-blue-600', 'font-bold');
             
             if(tabName === 'punch') initAdminKiosk();
-            else if (adminVideo.srcObject) adminVideo.srcObject.getTracks().forEach(t => t.stop());
+            else stopVideoStream(adminVideo);
+
+            if(tabName === 'reports') {
+                generateDailyReport();
+            }
         }
 
-        function filterList(status) {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('ring-2', 'ring-blue-400', 'bg-gray-100');
-                btn.classList.add('bg-white');
+        function switchReportSubTab(sub) {
+            ['daily', 'monthly', 'exports'].forEach(s => {
+                document.getElementById(`report-view-${s}`).classList.add('hidden');
+                document.getElementById(`subtab-btn-${s}`).className = "flex-1 py-3 text-gray-500 hover:text-blue-600";
             });
-            
-            const activeBtn = document.getElementById(`btnFilter-${status}`);
-            activeBtn.classList.add('ring-2', 'ring-blue-400', 'bg-gray-100');
-            activeBtn.classList.remove('bg-white');
-            
-            if (status === 'all') renderList(allEmployees);
-            else if (status === 'late') renderList(allEmployees.filter(e => e.isLate));
-            else renderList(allEmployees.filter(e => e.status === status));
+            document.getElementById(`report-view-${sub}`).classList.remove('hidden');
+            document.getElementById(`subtab-btn-${sub}`).className = "flex-1 py-3 border-b-2 border-blue-600 text-blue-600 bg-white font-bold";
+
+            if (sub === 'daily') generateDailyReport();
+            if (sub === 'monthly') generateMonthlyReport();
         }
 
         function toggleModal(modalId) { document.getElementById(modalId).classList.toggle('hidden'); }
 
-        // --- DASHBOARD LOGIC WITH 15 MIN GRACE & DUAL SHIFT ---
+        function toggleAnalytics() {
+            const container = document.getElementById('analyticsContainer');
+            container.classList.toggle('hidden');
+            document.getElementById('analyticsToggleText').innerText = container.classList.contains('hidden') ? 'Analytics' : 'Hide Stats';
+            if (!container.classList.contains('hidden')) renderChart();
+        }
+
+        function stopVideoStream(videoElement) {
+            if (videoElement && videoElement.srcObject) {
+                videoElement.srcObject.getTracks().forEach(t => t.stop());
+                videoElement.srcObject = null;
+            }
+        }
+
+        // --- DASHBOARD AND DATA PIPELINE ---
         function formatTime(isoStr) { return isoStr ? new Date(isoStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'; }
         
         function calculateLate(empTiming, firstPunchInISO) {
@@ -445,6 +849,7 @@
             
             const shifts = empTiming.split(',');
             const actualTime = new Date(firstPunchInISO);
+            const graceMinutes = currentAdmin?.grace_period_mins || 15;
             
             for (let shift of shifts) {
                 const parts = shift.split('-');
@@ -460,7 +865,7 @@
                 expectedEnd.setHours(endHour, endMin, 0, 0);
                 if (endHour < expHour) expectedEnd.setDate(expectedEnd.getDate() + 1);
 
-                const graceTime = new Date(expectedStart.getTime() + 15 * 60000); 
+                const graceTime = new Date(expectedStart.getTime() + graceMinutes * 60000); 
                 
                 if (actualTime <= expectedEnd) {
                     return actualTime > graceTime;
@@ -473,29 +878,76 @@
             try {
                 const today = new Date().toISOString().split('T')[0];
                 
-                const { data: employees, error: empErr } = await supabaseClient.from('employees').select('*').eq('admin_id', currentAdmin.id);
+                // Fetch all employees for this firm
+                const { data: employees, error: empErr } = await supabaseClient
+                    .from('employees')
+                    .select('*')
+                    .eq('admin_id', currentAdmin.id)
+                    .order('name', { ascending: true });
                 if (empErr) throw new Error("Employees Error: " + empErr.message);
                 
-                const { data: attendance, error: attErr } = await supabaseClient.from('attendance').select('*').eq('date', today);
+                // Fetch today's attendance records
+                const { data: attendance, error: attErr } = await supabaseClient
+                    .from('attendance')
+                    .select('*')
+                    .eq('date', today);
                 if (attErr) throw new Error("Attendance Error: " + attErr.message);
+
+                // Fetch registered leaves for today if table exists
+                let todayLeaves = [];
+                try {
+                    const { data: leaves } = await supabaseClient.from('leaves').select('*').eq('leave_date', today);
+                    if (leaves) todayLeaves = leaves;
+                } catch(e) { /* table optional */ }
                 
-                allEmployees = employees.map(emp => {
+                allEmployees = (employees || []).map(emp => {
                     const record = attendance?.find(a => a.employee_id === emp.id);
-                    let status = 'missing'; let totalHrs = 0; let punches = []; let isLate = false;
+                    const leave = todayLeaves.find(l => l.employee_id === emp.id);
+
+                    let status = 'missing'; 
+                    let totalHrs = 0; 
+                    let punches = []; 
+                    let isLate = false;
+                    let isHalfDay = false;
+                    let onLeave = !!leave;
                     
                     if (record && record.punches && record.punches.length > 0) {
                         punches = record.punches;
                         status = punches[punches.length - 1].out ? 'out' : 'in';
-                        totalHrs = record.total_hours || 0;
-                        if(record.status === 'Late') isLate = true;
-                        else if(calculateLate(emp.work_timing, punches[0].in)) isLate = true;
+                        totalHrs = Number(record.total_hours) || 0;
+
+                        if (record.status === 'Late') isLate = true;
+                        else if (calculateLate(emp.work_timing, punches[0].in)) isLate = true;
+
+                        if (record.status === 'Half-Day' || totalHrs < 4.5 && punches[punches.length-1].out) isHalfDay = true;
                     }
-                    if(record && record.status === 'Absent') status = 'missing';
-                    return { ...emp, status, isLate, totalHrs, punches, recordId: record?.id };
+
+                    if (record && record.status === 'Absent') status = 'missing';
+                    if (onLeave) status = 'leave';
+
+                    // Compute dynamic Overtime hours based on admin threshold (default 8)
+                    const standardHours = currentAdmin?.standard_hours || 8;
+                    const otHours = totalHrs > standardHours ? (totalHrs - standardHours) : 0;
+                    
+                    return { 
+                        ...emp, 
+                        status, 
+                        isLate, 
+                        isHalfDay,
+                        onLeave,
+                        totalHrs, 
+                        otHours,
+                        punches, 
+                        recordId: record?.id,
+                        otApproved: record?.ot_approved || false
+                    };
                 });
                 
                 updateStats(); 
                 filterList('all'); 
+                populateDepartmentDropdowns();
+                populateLeaveEmpDropdown();
+                updateFaceCounter();
                 
             } catch (err) {
                 alert("Dashboard data error: " + err.message);
@@ -509,20 +961,66 @@
             document.getElementById('countOut').innerText = allEmployees.filter(e => e.status === 'out').length;
             document.getElementById('countMissing').innerText = allEmployees.filter(e => e.status === 'missing').length;
             document.getElementById('countLate').innerText = allEmployees.filter(e => e.isLate).length;
+            if (todayChartInstance) renderChart();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('todayRatioChart').getContext('2d');
+            const inCount = allEmployees.filter(e => e.status === 'in').length;
+            const outCount = allEmployees.filter(e => e.status === 'out').length;
+            const missingCount = allEmployees.filter(e => e.status === 'missing').length;
+            const lateCount = allEmployees.filter(e => e.isLate).length;
+
+            if (todayChartInstance) todayChartInstance.destroy();
+            todayChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['In', 'Out', 'Late', 'Absent'],
+                    datasets: [{
+                        data: [inCount, outCount, lateCount, missingCount],
+                        backgroundColor: ['#22c55e', '#f97316', '#ef4444', '#9ca3af']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } }
+                }
+            });
+        }
+
+        function filterList(status) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-blue-400', 'bg-gray-100');
+                btn.classList.add('bg-white');
+            });
+            
+            const activeBtn = document.getElementById(`btnFilter-${status}`);
+            if (activeBtn) {
+                activeBtn.classList.add('ring-2', 'ring-blue-400', 'bg-gray-100');
+                activeBtn.classList.remove('bg-white');
+            }
+            
+            if (status === 'all') renderList(allEmployees);
+            else if (status === 'late') renderList(allEmployees.filter(e => e.isLate));
+            else renderList(allEmployees.filter(e => e.status === status));
         }
 
         function renderList(list) {
             const container = document.getElementById('employeeList');
-            if(list.length === 0) {
-                container.innerHTML = `<div class="text-center text-gray-500 py-4 text-sm">No employees match this filter.</div>`;
+            if(!list || list.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-500 py-6 text-sm bg-white rounded-lg border">No employees match this filter.</div>`;
                 return;
             }
 
             container.innerHTML = list.map(emp => {
                 let badge = emp.status === 'missing' ? `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-1 rounded font-bold uppercase">Absent</span>` : 
                             emp.status === 'in' ? `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded font-bold uppercase">In</span>` : 
+                            emp.status === 'leave' ? `<span class="bg-amber-100 text-amber-700 text-[10px] px-2 py-1 rounded font-bold uppercase">On Leave</span>` :
                             `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded font-bold uppercase">Out</span>`;
-                if(emp.isLate) badge += ` <span class="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded font-bold uppercase ml-1">Late</span>`;
+                
+                if (emp.isLate) badge += ` <span class="bg-red-100 text-red-700 text-[10px] px-2 py-1 rounded font-bold uppercase ml-1">Late</span>`;
+                if (emp.isHalfDay) badge += ` <span class="bg-purple-100 text-purple-700 text-[10px] px-2 py-1 rounded font-bold uppercase ml-1">Half-Day</span>`;
 
                 const displayShift = emp.work_timing ? emp.work_timing.replace(',', ' & ') : 'Not Set';
                 
@@ -546,18 +1044,36 @@
                 }
 
                 return `
-                <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm flex flex-col relative">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm flex flex-col relative transition">
                     <div class="flex justify-between items-start mb-2">
-                        <div><p class="font-bold text-gray-800 text-sm leading-tight">${emp.name}</p><p class="text-[9px] text-gray-500 mt-1">Shift: ${displayShift}</p></div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <p class="font-bold text-gray-800 text-sm leading-tight">${emp.name}</p>
+                                <span class="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-mono">${emp.emp_code || 'EMP'}</span>
+                            </div>
+                            <p class="text-[9px] text-gray-500 mt-1">Shift: ${displayShift} | ${emp.department || 'General'}</p>
+                        </div>
                         <div class="text-right">
                             ${badge}
-                            <div class="mt-2 text-right"><span class="text-[9px] text-gray-400 uppercase font-bold">Total Hrs: </span><span class="text-blue-600 font-bold text-xs">${emp.totalHrs.toFixed(2)}</span></div>
+                            <div class="mt-2 text-right">
+                                <span class="text-[9px] text-gray-400 uppercase font-bold">Total Hrs: </span>
+                                <span class="text-blue-600 font-bold text-xs">${emp.totalHrs.toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
+
                     ${punchHTML}
-                    <div class="flex gap-2 mt-3 pt-2 border-t border-dashed border-gray-200">
-                        <button type="button" onclick="overrideStatus('${emp.id}', 'Absent')" class="flex-1 bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 py-1 rounded text-[10px] font-bold transition">Mark Absent</button>
-                        <button type="button" onclick="overrideStatus('${emp.id}', 'Late')" class="flex-1 bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-orange-600 py-1 rounded text-[10px] font-bold transition">Mark Late</button>
+
+                    <!-- QUICK ACTIONS & ADVANCED ATTENDANCE OVERRIDE -->
+                    <div class="flex gap-1.5 mt-3 pt-2 border-t border-dashed border-gray-200">
+                        <button type="button" onclick="overrideStatus('${emp.id}', 'Absent')" class="flex-1 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-600 py-1.5 rounded text-[9px] font-bold transition border">Absent</button>
+                        <button type="button" onclick="overrideStatus('${emp.id}', 'Late')" class="flex-1 bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 py-1.5 rounded text-[9px] font-bold transition border">Late</button>
+                        <button type="button" onclick="openCorrectionModal('${emp.id}')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 py-1.5 rounded text-[9px] font-bold transition border border-blue-200">
+                            <i class="fas fa-edit mr-1"></i>Edit
+                        </button>
+                        <button type="button" onclick="openEmployeeMenu('${emp.id}')" class="px-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded text-xs transition">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
                     </div>
                 </div>`;
             }).join('');
@@ -565,22 +1081,54 @@
 
         function searchEmployees() {
             const term = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allEmployees.filter(e => e.name.toLowerCase().includes(term) || (e.emp_code && e.emp_code.toLowerCase().includes(term)));
+            const filtered = allEmployees.filter(e => 
+                e.name.toLowerCase().includes(term) || 
+                (e.emp_code && e.emp_code.toLowerCase().includes(term)) ||
+                (e.department && e.department.toLowerCase().includes(term))
+            );
             renderList(filtered);
         }
 
         async function overrideStatus(empId, statusStr) {
             const dateOnly = new Date().toISOString().split('T')[0];
             const empData = allEmployees.find(e => e.id === empId);
-            if(empData.recordId) await supabaseClient.from('attendance').update({ status: statusStr }).eq('id', empData.recordId);
-            else await supabaseClient.from('attendance').insert([{ employee_id: empId, date: dateOnly, status: statusStr, punches: [], total_hours: 0 }]);
-            alert(`Employee marked as ${statusStr}`);
+            
+            if(empData.recordId) {
+                await supabaseClient.from('attendance').update({ status: statusStr }).eq('id', empData.recordId);
+            } else {
+                await supabaseClient.from('attendance').insert([{ 
+                    employee_id: empId, 
+                    date: dateOnly, 
+                    status: statusStr, 
+                    punches: [], 
+                    total_hours: 0,
+                    is_manual_override: true 
+                }]);
+            }
+            logAudit("Attendance Override", { emp_id: empId, status: statusStr, date: dateOnly });
             loadDashboard();
         }
 
-        // --- ADD EMPLOYEE LOGIC ---
-        function toggleAddForm() { document.getElementById('addEmployeeForm').classList.toggle('hidden'); }
-        
+        // --- EMPLOYEE MANAGEMENT (ADD / EDIT / DELETE / RETRAIN) ---
+        function toggleAddForm() {
+            const form = document.getElementById('addEmployeeForm');
+            form.classList.toggle('hidden');
+            if (form.classList.contains('hidden')) {
+                resetEmployeeForm();
+            }
+        }
+
+        function resetEmployeeForm() {
+            document.getElementById('editEmpId').value = '';
+            document.getElementById('formEmployeeTitle').innerText = 'New Employee Details';
+            document.querySelectorAll('#addEmployeeForm input').forEach(i => i.value = '');
+            document.getElementById('eDept').value = 'General';
+            document.getElementById('eTimingType').value = 'Single';
+            document.getElementById('eStart1').value = '09:30';
+            document.getElementById('eEnd1').value = '19:00';
+            handleTimingChange();
+        }
+
         function handleDeptChange() {
             const sel = document.getElementById('eDept'); const other = document.getElementById('eDeptOther');
             if(sel.value === 'Other') other.classList.remove('hidden'); else other.classList.add('hidden');
@@ -608,29 +1156,654 @@
                 finalTimingStr = `${document.getElementById('eDStart1').value}-${document.getElementById('eDEnd1').value},${document.getElementById('eDStart2').value}-${document.getElementById('eDEnd2').value}`;
             }
 
+            const editId = document.getElementById('editEmpId').value;
             const empData = {
-                admin_id: currentAdmin.id, name: document.getElementById('eName').value,
-                emp_code: document.getElementById('eCode').value, login_id: document.getElementById('eLogin').value,
-                password: document.getElementById('ePass').value, department: dept || 'General',
-                work_timing: finalTimingStr, monthly_salary: document.getElementById('eSalary').value || 0,
-                overtime_rate: document.getElementById('eRate').value || 0
+                admin_id: currentAdmin.id, 
+                name: document.getElementById('eName').value.trim(),
+                emp_code: document.getElementById('eCode').value.trim(), 
+                login_id: document.getElementById('eLogin').value.trim(),
+                password: document.getElementById('ePass').value.trim(), 
+                department: dept || 'General',
+                work_timing: finalTimingStr, 
+                monthly_salary: parseFloat(document.getElementById('eSalary').value) || 0,
+                overtime_rate: parseFloat(document.getElementById('eRate').value) || 0
             };
             
             if(!empData.name || !empData.login_id || !empData.password) return alert("Name, Login ID, and Password are required!");
 
-            const { error } = await supabaseClient.from('employees').insert([empData]);
+            let error = null;
+            if (editId) {
+                const res = await supabaseClient.from('employees').update(empData).eq('id', editId);
+                error = res.error;
+                logAudit("Employee Updated", { emp_id: editId, name: empData.name });
+            } else {
+                const res = await supabaseClient.from('employees').insert([empData]);
+                error = res.error;
+                logAudit("Employee Created", { name: empData.name, code: empData.emp_code });
+            }
+
             if (error) {
                 if (error.code === '23505') alert("This Login ID is already taken.");
                 else alert("Error: " + error.message);
             } else { 
-                alert("Employee Saved Successfully!"); 
+                alert(editId ? "Employee Updated Successfully!" : "Employee Saved Successfully!"); 
                 toggleAddForm(); 
-                document.querySelectorAll('#addEmployeeForm input').forEach(i => i.value = ''); 
                 loadDashboard(); 
             }
         }
 
-        // --- GEOFENCING & CALENDAR SETTINGS ---
+        function openEmployeeMenu(empId) {
+            const emp = allEmployees.find(e => e.id === empId);
+            if (!emp) return;
+
+            const action = prompt(`Options for ${emp.name}:\n1: Edit Employee\n2: Register / Retrain Face\n3: Reset Password\n4: Delete Employee\n\nEnter option number:`);
+            if (action === '1') {
+                document.getElementById('editEmpId').value = emp.id;
+                document.getElementById('formEmployeeTitle').innerText = `Edit: ${emp.name}`;
+                document.getElementById('eName').value = emp.name;
+                document.getElementById('eCode').value = emp.emp_code || '';
+                document.getElementById('eLogin').value = emp.login_id || '';
+                document.getElementById('ePass').value = emp.password || '';
+                document.getElementById('eSalary').value = emp.monthly_salary || '';
+                document.getElementById('eRate').value = emp.overtime_rate || '';
+                
+                if (['General','Service','Engineer','CCO','Manager','Captain','Head Chef','Assistant Chef','Kitchen Supervisor','Kitchen Helper','Dish Washer','Waiter'].includes(emp.department)) {
+                    document.getElementById('eDept').value = emp.department;
+                } else {
+                    document.getElementById('eDept').value = 'Other';
+                    document.getElementById('eDeptOther').classList.remove('hidden');
+                    document.getElementById('eDeptOther').value = emp.department;
+                }
+
+                if (emp.work_timing && emp.work_timing.includes(',')) {
+                    document.getElementById('eTimingType').value = 'Dual';
+                    handleTimingChange();
+                    const shifts = emp.work_timing.split(',');
+                    const [s1i, s1o] = shifts[0].split('-');
+                    const [s2i, s2o] = shifts[1].split('-');
+                    document.getElementById('eDStart1').value = s1i;
+                    document.getElementById('eDEnd1').value = s1o;
+                    document.getElementById('eDStart2').value = s2i;
+                    document.getElementById('eDEnd2').value = s2o;
+                } else {
+                    document.getElementById('eTimingType').value = 'Single';
+                    handleTimingChange();
+                    if (emp.work_timing) {
+                        const [s1i, s1o] = emp.work_timing.split('-');
+                        document.getElementById('eStart1').value = s1i;
+                        document.getElementById('eEnd1').value = s1o;
+                    }
+                }
+                document.getElementById('addEmployeeForm').classList.remove('hidden');
+            } else if (action === '2') {
+                openFaceTraining(emp);
+            } else if (action === '3') {
+                const newP = prompt(`Enter new password for ${emp.name}:`);
+                if (newP && newP.trim().length >= 4) {
+                    supabaseClient.from('employees').update({ password: newP.trim() }).eq('id', emp.id).then(({ error }) => {
+                        if (error) alert("Error: " + error.message);
+                        else alert("Password updated successfully!");
+                    });
+                }
+            } else if (action === '4') {
+                if (confirm(`Are you sure you want to delete ${emp.name}? This will remove attendance history.`)) {
+                    supabaseClient.from('employees').delete().eq('id', emp.id).then(({ error }) => {
+                        if (error) alert("Error deleting employee: " + error.message);
+                        else {
+                            alert("Employee deleted.");
+                            loadDashboard();
+                        }
+                    });
+                }
+            }
+        }
+
+        // --- ATTENDANCE CORRECTION MODAL ---
+        function openCorrectionModal(empId) {
+            const emp = allEmployees.find(e => e.id === empId);
+            if (!emp) return;
+
+            document.getElementById('correctEmpId').value = emp.id;
+            document.getElementById('correctRecordId').value = emp.recordId || '';
+            document.getElementById('correctEmpName').innerText = `${emp.name} (${emp.emp_code || 'No Code'})`;
+            document.getElementById('correctStatus').value = emp.status === 'in' || emp.status === 'out' ? 'Present' : (emp.status === 'leave' ? 'Paid Leave' : 'Absent');
+            document.getElementById('correctApproveOt').checked = emp.otApproved;
+            document.getElementById('correctNote').value = '';
+
+            // Prefill shifts if available
+            document.getElementById('correctS1In').value = emp.punches[0]?.in ? new Date(emp.punches[0].in).toTimeString().substring(0,5) : '';
+            document.getElementById('correctS1Out').value = emp.punches[0]?.out ? new Date(emp.punches[0].out).toTimeString().substring(0,5) : '';
+            document.getElementById('correctS2In').value = emp.punches[1]?.in ? new Date(emp.punches[1].in).toTimeString().substring(0,5) : '';
+            document.getElementById('correctS2Out').value = emp.punches[1]?.out ? new Date(emp.punches[1].out).toTimeString().substring(0,5) : '';
+
+            toggleModal('punchCorrectionModal');
+        }
+
+        async function savePunchCorrection() {
+            const empId = document.getElementById('correctEmpId').value;
+            const recordId = document.getElementById('correctRecordId').value;
+            const status = document.getElementById('correctStatus').value;
+            const approveOt = document.getElementById('correctApproveOt').checked;
+            const note = document.getElementById('correctNote').value;
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            const s1In = document.getElementById('correctS1In').value;
+            const s1Out = document.getElementById('correctS1Out').value;
+            const s2In = document.getElementById('correctS2In').value;
+            const s2Out = document.getElementById('correctS2Out').value;
+
+            let punches = [];
+            let totalHours = 0;
+
+            if (s1In) {
+                const inISO = `${todayStr}T${s1In}:00.000Z`;
+                const outISO = s1Out ? `${todayStr}T${s1Out}:00.000Z` : null;
+                punches.push({ in: inISO, out: outISO });
+                if (outISO) totalHours += (new Date(outISO) - new Date(inISO)) / 3600000;
+            }
+            if (s2In) {
+                const inISO = `${todayStr}T${s2In}:00.000Z`;
+                const outISO = s2Out ? `${todayStr}T${s2Out}:00.000Z` : null;
+                punches.push({ in: inISO, out: outISO });
+                if (outISO) totalHours += (new Date(outISO) - new Date(inISO)) / 3600000;
+            }
+
+            const payload = {
+                employee_id: empId,
+                date: todayStr,
+                status: status,
+                punches: punches,
+                total_hours: Math.max(0, totalHours),
+                is_manual_override: true,
+                ot_approved: approveOt,
+                notes: note || 'Manual Admin Edit'
+            };
+
+            let error = null;
+            if (recordId) {
+                const res = await supabaseClient.from('attendance').update(payload).eq('id', recordId);
+                error = res.error;
+            } else {
+                const res = await supabaseClient.from('attendance').insert([payload]);
+                error = res.error;
+            }
+
+            if (error) {
+                alert("Error saving correction: " + error.message);
+            } else {
+                alert("Attendance record updated!");
+                toggleModal('punchCorrectionModal');
+                loadDashboard();
+                logAudit("Manual Punch Correction", payload);
+            }
+        }
+
+        // --- FACE-API.JS ENGINE & MULTI-DESCRIPTOR RECOGNITION ---
+        async function initFaceApiModels() {
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+            await Promise.all([
+                faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+            ]);
+        }
+
+        async function initAdminKiosk() {
+            const statusEl = document.getElementById('adminStatusText');
+            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading AI Models...';
+            try {
+                await initFaceApiModels();
+                const labeledDescriptors = [];
+                
+                allEmployees.forEach(emp => {
+                    const descriptors = [];
+                    if (emp.face_descriptor) {
+                        try {
+                            descriptors.push(new Float32Array(JSON.parse(emp.face_descriptor)));
+                        } catch(e){}
+                    }
+                    if (emp.face_descriptors_json && Array.isArray(emp.face_descriptors_json)) {
+                        emp.face_descriptors_json.forEach(d => {
+                            try { descriptors.push(new Float32Array(d)); } catch(e){}
+                        });
+                    }
+                    if (descriptors.length > 0) {
+                        labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(emp.id, descriptors));
+                    }
+                });
+
+                if(labeledDescriptors.length > 0) {
+                    adminFaceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55); // Adjusted confidence
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                    adminVideo.srcObject = stream;
+                    statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready (No Geo-Lock)';
+                } else {
+                    statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-amber-400"></i> No Registered Faces';
+                }
+            } catch (err) { 
+                console.error(err);
+                statusEl.innerHTML = '<i class="fas fa-video-slash text-red-500"></i> Scanner Offline'; 
+            }
+        }
+
+        async function adminKioskPunch(type) {
+            if(!adminFaceMatcher) return alert("AI Scanner is not ready or no faces registered.");
+            const statusEl = document.getElementById('adminStatusText');
+            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Scanning Face...';
+
+            try {
+                const detection = await faceapi.detectSingleFace(adminVideo).withFaceLandmarks().withFaceDescriptor();
+                if (!detection) {
+                    statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
+                    return alert("No face detected! Please look directly at the camera.");
+                }
+
+                const match = adminFaceMatcher.findBestMatch(detection.descriptor);
+                if (match.label === 'unknown') {
+                    statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
+                    return alert("Face not recognized! Register descriptor in Employee Options.");
+                }
+
+                const emp = allEmployees.find(e => e.id === match.label);
+                await executePunchTransaction(emp, type);
+
+                statusEl.innerHTML = `<span class="text-green-400 font-bold">${emp.name} Punched ${type.toUpperCase()}!</span>`;
+                setTimeout(() => { 
+                    statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready'; 
+                    loadDashboard(); 
+                }, 2500);
+
+            } catch(err) {
+                alert("Punch verification failed: " + err.message);
+                statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
+            }
+        }
+
+        async function executePunchTransaction(emp, type) {
+            const now = new Date().toISOString();
+            const dateOnly = now.split('T')[0];
+            
+            // Check network availability - if offline, write to local queue
+            if (!navigator.onLine) {
+                queueOfflinePunch(emp.id, type, now);
+                alert(`Device is OFFLINE. Punch queued locally for ${emp.name}.`);
+                return;
+            }
+
+            const { data: record } = await supabaseClient.from('attendance').select('*').eq('employee_id', emp.id).eq('date', dateOnly).maybeSingle();
+            let punches = record ? record.punches || [] : [];
+            let totalHrs = record ? Number(record.total_hours) || 0 : 0;
+
+            if (type === 'in') {
+                if (punches.length > 0 && !punches[punches.length - 1].out) throw new Error(emp.name + " is already Punched IN!");
+                punches.push({ in: now });
+                const isLateArrival = calculateLate(emp.work_timing, now);
+                const assignedStatus = isLateArrival ? 'Late' : 'Present';
+
+                if (!record) {
+                    await supabaseClient.from('attendance').insert([{ 
+                        employee_id: emp.id, 
+                        date: dateOnly, 
+                        punches, 
+                        total_hours: 0, 
+                        status: assignedStatus 
+                    }]);
+                } else {
+                    await supabaseClient.from('attendance').update({ punches, status: assignedStatus }).eq('id', record.id);
+                }
+            } else {
+                if (punches.length === 0 || punches[punches.length - 1].out) throw new Error(emp.name + " needs to Punch IN first!");
+                let lastPunch = punches[punches.length - 1];
+                lastPunch.out = now;
+                let sessionHrs = (new Date(lastPunch.out).getTime() - new Date(lastPunch.in).getTime()) / 3600000;
+                totalHrs += sessionHrs;
+                await supabaseClient.from('attendance').update({ punches, total_hours: totalHrs }).eq('id', record.id);
+            }
+
+            logAudit("Punch Recorded", { emp_id: emp.id, type, timestamp: now });
+        }
+
+        // --- FACE TRAINING LOGIC ---
+        async function openFaceTraining(emp) {
+            trainingTargetEmp = emp;
+            document.getElementById('trainFaceEmpName').innerText = `Training profile for: ${emp.name}`;
+            document.getElementById('trainStatus').innerText = 'Initializing camera...';
+            toggleModal('faceTrainingModal');
+
+            try {
+                await initFaceApiModels();
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                trainVideo.srcObject = stream;
+                document.getElementById('trainStatus').innerText = 'Look into camera and tap Register Face.';
+            } catch(e) {
+                alert("Camera access denied or unavailable: " + e.message);
+                closeTrainModal();
+            }
+        }
+
+        async function captureAndSaveFaceDescriptor() {
+            if (!trainingTargetEmp) return;
+            const statusEl = document.getElementById('trainStatus');
+            statusEl.innerText = 'Extracting facial landmarks...';
+
+            const detection = await faceapi.detectSingleFace(trainVideo).withFaceLandmarks().withFaceDescriptor();
+            if (!detection) return alert("No face detected! Center your face and keep still.");
+
+            const descriptorArray = Array.from(detection.descriptor);
+            
+            // Save descriptor backward-compatibly in face_descriptor column
+            const { error } = await supabaseClient.from('employees').update({
+                face_descriptor: JSON.stringify(descriptorArray)
+            }).eq('id', trainingTargetEmp.id);
+
+            if (error) alert("Error saving face descriptor: " + error.message);
+            else {
+                alert(`Face successfully registered for ${trainingTargetEmp.name}!`);
+                closeTrainModal();
+                loadDashboard();
+            }
+        }
+
+        function closeTrainModal() {
+            stopVideoStream(trainVideo);
+            trainingTargetEmp = null;
+            document.getElementById('faceTrainingModal').classList.add('hidden');
+        }
+
+        function updateFaceCounter() {
+            const count = allEmployees.filter(e => e.face_descriptor).length;
+            const el = document.getElementById('faceRegisteredCount');
+            if (el) el.innerText = `${count} / ${allEmployees.length} Registered`;
+        }
+
+        // --- ON-SCREEN REPORTS & KPI ENGINE ---
+        let currentDailyReportData = [];
+
+        async function generateDailyReport() {
+            const dateStr = document.getElementById('dailyReportDate').value;
+            if (!dateStr) return;
+
+            const tbody = document.getElementById('dailyReportTableBody');
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i> Loading ${dateStr}...</td></tr>`;
+
+            const { data: attendanceList, error } = await supabaseClient.from('attendance').select('*').eq('date', dateStr);
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-red-500">Error loading report</td></tr>`;
+                return;
+            }
+
+            const standardHours = currentAdmin?.standard_hours || 8;
+
+            currentDailyReportData = allEmployees.map(emp => {
+                const record = attendanceList?.find(a => a.employee_id === emp.id);
+                const punches = record?.punches || [];
+                const totalHours = Number(record?.total_hours) || 0;
+                let status = record ? record.status : 'Absent';
+                let isLate = status === 'Late' || calculateLate(emp.work_timing, punches[0]?.in);
+                let otHours = totalHours > standardHours ? (totalHours - standardHours) : 0;
+                
+                // Estimated daily salary calculation
+                const monthlyBase = Number(emp.monthly_salary) || 0;
+                const dailyBase = monthlyBase > 0 ? (monthlyBase / 30) : 0;
+                const otRate = Number(emp.overtime_rate) || 0;
+                const estDailyPay = (status === 'Absent' ? 0 : dailyBase) + (otHours * otRate);
+
+                return {
+                    emp,
+                    status: record ? status : 'Absent',
+                    punches,
+                    totalHours,
+                    otHours,
+                    isLate,
+                    estDailyPay
+                };
+            });
+
+            // Update KPI cards
+            const total = currentDailyReportData.length;
+            const present = currentDailyReportData.filter(d => d.status === 'Present' || d.status === 'Late').length;
+            const absent = currentDailyReportData.filter(d => d.status === 'Absent').length;
+            const late = currentDailyReportData.filter(d => d.isLate).length;
+            const sumHrs = currentDailyReportData.reduce((acc, c) => acc + c.totalHours, 0);
+            const sumOt = currentDailyReportData.reduce((acc, c) => acc + c.otHours, 0);
+
+            document.getElementById('dailyKpiEmp').innerText = total;
+            document.getElementById('dailyKpiPresent').innerText = present;
+            document.getElementById('dailyKpiAbsent').innerText = absent;
+            document.getElementById('dailyKpiLate').innerText = late;
+            document.getElementById('dailyKpiHours').innerText = sumHrs.toFixed(1) + 'h';
+            document.getElementById('dailyKpiOtHours').innerText = sumOt.toFixed(1) + 'h';
+
+            renderDailyReportTable();
+        }
+
+        function renderDailyReportTable() {
+            const deptFilter = document.getElementById('dailyFilterDept').value;
+            const statusFilter = document.getElementById('dailyFilterStatus').value;
+            const tbody = document.getElementById('dailyReportTableBody');
+
+            let filtered = currentDailyReportData.filter(row => {
+                const matchDept = deptFilter === 'All' || row.emp.department === deptFilter;
+                const matchStatus = statusFilter === 'All' || row.status === statusFilter;
+                return matchDept && matchStatus;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-gray-400 text-xs">No records found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(row => {
+                const s1In = row.punches[0]?.in ? formatTime(row.punches[0].in) : '--';
+                const s1Out = row.punches[0]?.out ? formatTime(row.punches[0].out) : '--';
+                const s2In = row.punches[1]?.in ? formatTime(row.punches[1].in) : '--';
+                const s2Out = row.punches[1]?.out ? formatTime(row.punches[1].out) : '--';
+
+                const statusColor = row.status === 'Present' ? 'text-green-600 bg-green-50' : 
+                                    row.status === 'Late' ? 'text-red-600 bg-red-50' : 'text-gray-500 bg-gray-50';
+
+                return `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="p-2">
+                        <div class="font-bold text-gray-800 text-[11px]">${row.emp.name}</div>
+                        <div class="text-[9px] text-gray-400">${row.emp.emp_code || '-'} | ${row.emp.department || 'Gen'}</div>
+                    </td>
+                    <td class="p-2">
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${statusColor}">${row.status}</span>
+                    </td>
+                    <td class="p-2 font-mono text-[10px]">${s1In} - ${s1Out}</td>
+                    <td class="p-2 font-mono text-[10px]">${s2In} - ${s2Out}</td>
+                    <td class="p-2 text-right font-bold text-[11px] text-gray-700">
+                        ${row.totalHours.toFixed(1)}h 
+                        <span class="text-[9px] text-purple-600 block">${row.otHours > 0 ? '+' + row.otHours.toFixed(1) + 'h OT' : ''}</span>
+                    </td>
+                    <td class="p-2 text-right font-bold text-[11px] text-blue-600">₹${row.estDailyPay.toFixed(0)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function generateMonthlyReport() {
+            const monthStr = document.getElementById('monthlyReportPicker').value;
+            if (!monthStr) return;
+
+            const tbody = document.getElementById('monthlyReportTableBody');
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i> Aggregating payroll for ${monthStr}...</td></tr>`;
+
+            const { data: attendanceList, error } = await supabaseClient
+                .from('attendance')
+                .select('*')
+                .like('date', `${monthStr}-%`);
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">Failed to aggregate monthly data.</td></tr>`;
+                return;
+            }
+
+            const standardHours = currentAdmin?.standard_hours || 8;
+            let totalPresentAgg = 0;
+            let totalOtAgg = 0;
+            let totalPayrollAgg = 0;
+
+            const rows = allEmployees.map(emp => {
+                const records = attendanceList.filter(a => a.employee_id === emp.id);
+                const presents = records.filter(r => r.status === 'Present' || r.status === 'Late' || r.punches?.length > 0).length;
+                const lates = records.filter(r => r.status === 'Late').length;
+                const totalMonthHrs = records.reduce((acc, r) => acc + (Number(r.total_hours) || 0), 0);
+                
+                let otHours = 0;
+                records.forEach(r => {
+                    const h = Number(r.total_hours) || 0;
+                    if (h > standardHours) otHours += (h - standardHours);
+                });
+
+                const basicSalary = Number(emp.monthly_salary) || 0;
+                const otRate = Number(emp.overtime_rate) || 0;
+                const otSalary = otHours * otRate;
+                const totalGross = basicSalary + otSalary;
+
+                totalPresentAgg += presents;
+                totalOtAgg += otHours;
+                totalPayrollAgg += totalGross;
+
+                return { emp, presents, lates, totalMonthHrs, otHours, basicSalary, otSalary, totalGross };
+            });
+
+            document.getElementById('monthlyKpiPresents').innerText = totalPresentAgg;
+            document.getElementById('monthlyKpiOtHours').innerText = totalOtAgg.toFixed(1) + 'h';
+            document.getElementById('monthlyKpiPayroll').innerText = `₹${totalPayrollAgg.toLocaleString()}`;
+
+            tbody.innerHTML = rows.map(r => `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="p-2">
+                        <div class="font-bold text-gray-800 text-[11px]">${r.emp.name}</div>
+                        <div class="text-[9px] text-gray-400">${r.emp.department || 'Gen'}</div>
+                    </td>
+                    <td class="p-2 font-mono text-[10px]">
+                        <span class="text-green-600 font-bold">${r.presents}P</span> / 
+                        <span class="text-red-500 font-bold">${30 - r.presents}A</span> / 
+                        <span class="text-orange-500 font-bold">${r.lates}L</span>
+                    </td>
+                    <td class="p-2 text-right font-bold text-[10px] text-gray-700">
+                        ${r.totalMonthHrs.toFixed(1)}h 
+                        <span class="block text-[9px] text-purple-600">(+${r.otHours.toFixed(1)} OT)</span>
+                    </td>
+                    <td class="p-2 text-right text-[10px]">
+                        <div>₹${r.basicSalary}</div>
+                        <div class="text-[9px] text-purple-600">+₹${r.otSalary.toFixed(0)}</div>
+                    </td>
+                    <td class="p-2 text-right font-bold text-blue-600 text-[11px]">₹${r.totalGross.toFixed(0)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function populateDepartmentDropdowns() {
+            const depts = [...new Set(allEmployees.map(e => e.department).filter(Boolean))];
+            const select = document.getElementById('dailyFilterDept');
+            select.innerHTML = '<option value="All">All Depts</option>';
+            depts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d; opt.innerText = d;
+                select.appendChild(opt);
+            });
+        }
+
+        // --- BULK OPERATIONS ---
+        function openBulkModal() { toggleModal('bulkModal'); }
+
+        async function bulkMarkAbsent() {
+            const today = new Date().toISOString().split('T')[0];
+            const missing = allEmployees.filter(e => e.status === 'missing');
+            if (missing.length === 0) return alert("No employees are marked missing today.");
+
+            if (!confirm(`Mark ${missing.length} missing employees as Absent for today?`)) return;
+
+            const inserts = missing.map(e => ({
+                employee_id: e.id,
+                date: today,
+                status: 'Absent',
+                punches: [],
+                total_hours: 0,
+                is_manual_override: true
+            }));
+
+            const { error } = await supabaseClient.from('attendance').upsert(inserts, { onConflict: 'employee_id, date' });
+            if (error) alert("Bulk update failed: " + error.message);
+            else {
+                alert(`Marked ${missing.length} employees as Absent.`);
+                toggleModal('bulkModal');
+                loadDashboard();
+                logAudit("Bulk Mark Absent", { count: missing.length });
+            }
+        }
+
+        async function bulkApproveOt() {
+            const today = new Date().toISOString().split('T')[0];
+            const eligible = allEmployees.filter(e => e.otHours > 0 && e.recordId);
+            if (eligible.length === 0) return alert("No employees have eligible Overtime hours today.");
+
+            const ids = eligible.map(e => e.recordId);
+            const { error } = await supabaseClient.from('attendance').update({ ot_approved: true }).in('id', ids);
+            if (error) alert("Error approving OT: " + error.message);
+            else {
+                alert(`Approved Overtime for ${eligible.length} employees!`);
+                toggleModal('bulkModal');
+                loadDashboard();
+                logAudit("Bulk OT Approved", { count: eligible.length });
+            }
+        }
+
+        // --- LEAVE MANAGEMENT ---
+        function openLeaveModal() {
+            populateLeaveEmpDropdown();
+            toggleModal('leaveModal');
+        }
+
+        function populateLeaveEmpDropdown() {
+            const select = document.getElementById('leaveEmpSelect');
+            if (!select) return;
+            select.innerHTML = allEmployees.map(e => `<option value="${e.id}">${e.name} (${e.emp_code || 'EMP'})</option>`).join('');
+        }
+
+        async function submitLeaveRecord() {
+            const empId = document.getElementById('leaveEmpSelect').value;
+            const date = document.getElementById('leaveDateInput').value;
+            const type = document.getElementById('leaveTypeSelect').value;
+            const reason = document.getElementById('leaveReasonInput').value;
+
+            if (!date) return alert("Please select a date.");
+
+            try {
+                // Upsert into leaves table
+                const { error: lErr } = await supabaseClient.from('leaves').insert([{
+                    admin_id: currentAdmin.id,
+                    employee_id: empId,
+                    leave_date: date,
+                    leave_type: type,
+                    reason: reason || 'Scheduled Leave',
+                    status: 'Approved'
+                }]);
+
+                // Also record into attendance table for reporting compatibility
+                await supabaseClient.from('attendance').upsert([{
+                    employee_id: empId,
+                    date: date,
+                    status: type,
+                    punches: [],
+                    total_hours: 0,
+                    is_manual_override: true,
+                    notes: `Leave: ${reason || type}`
+                }], { onConflict: 'employee_id, date' });
+
+                alert("Leave recorded successfully!");
+                toggleModal('leaveModal');
+                loadDashboard();
+                logAudit("Leave Recorded", { emp_id: empId, date, type });
+            } catch(e) {
+                alert("Error recording leave: " + e.message);
+            }
+        }
+
+        // --- SETTINGS: GEOFENCING, CALENDAR, SALARY CONFIG ---
         function openLocationModal() {
             if(currentAdmin.geo_lat && currentAdmin.geo_lng) {
                 document.getElementById('locSavedView').classList.remove('hidden');
@@ -673,6 +1846,7 @@
             currentAdmin.geo_lat = lat; currentAdmin.geo_lng = lng; currentAdmin.geo_radius = rad;
             alert("Geofence activated successfully!");
             toggleModal('locationModal');
+            logAudit("Geofence Updated", { lat, lng, rad });
         }
 
         function openCalendarModal() {
@@ -689,82 +1863,139 @@
             currentAdmin.weekly_offs = selectedWOs;
             alert("Weekly Offs saved successfully!");
             toggleModal('calendarModal');
+            logAudit("Weekly Offs Saved", { weekly_offs: selectedWOs });
         }
 
-        // --- ADMIN KIOSK PUNCH ---
-        async function initAdminKiosk() {
-            const statusEl = document.getElementById('adminStatusText');
-            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading AI...';
+        function openSalaryModal() {
+            document.getElementById('cfgStandardHours').value = currentAdmin.standard_hours || 8;
+            document.getElementById('cfgOtMultiplier').value = currentAdmin.ot_multiplier || 1.5;
+            toggleModal('salaryModal');
+        }
+
+        async function saveSalaryConfig() {
+            const stdHours = parseFloat(document.getElementById('cfgStandardHours').value) || 8;
+            const otMult = parseFloat(document.getElementById('cfgOtMultiplier').value) || 1.5;
+
+            const { error } = await supabaseClient.from('admins').update({
+                standard_hours: stdHours,
+                ot_multiplier: otMult
+            }).eq('id', currentAdmin.id);
+
+            if (error) alert("Error saving salary config: " + error.message);
+            else {
+                currentAdmin.standard_hours = stdHours;
+                currentAdmin.ot_multiplier = otMult;
+                alert("Salary & Overtime configuration saved to database!");
+                toggleModal('salaryModal');
+                loadDashboard();
+                logAudit("Salary Config Saved", { standard_hours: stdHours, ot_multiplier: otMult });
+            }
+        }
+
+        // --- AUDIT TRAIL LOGGING ---
+        async function logAudit(action, details = {}) {
+            if (!currentAdmin) return;
             try {
-                const MODEL_URL = './models';
-                await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                ]);
-                const labeledDescriptors = [];
-                for (let i = 0; i < allEmployees.length; i++) {
-                    if (allEmployees[i].face_descriptor) {
-                        labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(allEmployees[i].id, [new Float32Array(JSON.parse(allEmployees[i].face_descriptor))]));
-                    }
-                }
-                if(labeledDescriptors.length > 0) {
-                    adminFaceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                    adminVideo.srcObject = stream;
-                    statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready (No Geo-Lock)';
-                } else statusEl.innerHTML = '<i class="fas fa-exclamation-circle text-red-400"></i> No Faces';
-            } catch (err) { statusEl.innerHTML = '<i class="fas fa-video-slash text-red-500"></i> Error'; }
+                await supabaseClient.from('audit_logs').insert([{
+                    admin_id: currentAdmin.id,
+                    action,
+                    details
+                }]);
+            } catch(e) {
+                console.warn("Audit log skipped (table not migrated):", e);
+            }
         }
 
-        async function adminKioskPunch(type) {
-            if(!adminFaceMatcher) return alert("System not ready.");
-            const statusEl = document.getElementById('adminStatusText');
-            statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Scanning Face...';
+        async function exportAuditLogCSV() {
+            try {
+                const { data, error } = await supabaseClient.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200);
+                if (error || !data || data.length === 0) return alert("No audit logs available.");
+                
+                let csv = "Timestamp,Action,Details\n";
+                data.forEach(r => {
+                    csv += `"${r.created_at}","${r.action}","${JSON.stringify(r.details).replace(/"/g, '""')}"\n`;
+                });
+                downloadCsvBlob(csv, "System_Audit_Trail.csv");
+            } catch(e) { alert("Audit export error: " + e.message); }
+        }
 
-            const detection = await faceapi.detectSingleFace(adminVideo).withFaceLandmarks().withFaceDescriptor();
-            if (!detection) {
-                statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
-                return alert("No face detected! Look at camera.");
-            }
+        // --- BACKUP SYSTEM DATA (JSON EXPORT) ---
+        async function backupSystemData() {
+            try {
+                const backupPayload = {
+                    admin: currentAdmin,
+                    employees: allEmployees,
+                    exportDate: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Attendance_Backup_${currentAdmin.firm_name || 'Admin'}_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            } catch(e) { alert("Backup error: " + e.message); }
+        }
 
-            const match = adminFaceMatcher.findBestMatch(detection.descriptor);
-            if (match.label === 'unknown') {
-                statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready';
-                return alert("Face not recognized!");
-            }
+        // --- OFFLINE SYNC QUEUE SUPPORT ---
+        function queueOfflinePunch(empId, type, timestamp) {
+            const queue = JSON.parse(localStorage.getItem('offline_punches') || '[]');
+            queue.push({ empId, type, timestamp });
+            localStorage.setItem('offline_punches', JSON.stringify(queue));
+            checkOfflineQueue();
+        }
 
-            const emp = allEmployees.find(e => e.id === match.label);
-            
-            const now = new Date().toISOString();
-            const dateOnly = now.split('T')[0];
-            const { data: record } = await supabaseClient.from('attendance').select('*').eq('employee_id', emp.id).eq('date', dateOnly).single();
-            let punches = record ? record.punches || [] : [];
-            let totalHrs = record ? record.total_hours || 0 : 0;
-
-            if (type === 'in') {
-                if (punches.length > 0 && !punches[punches.length - 1].out) return alert(emp.name + " is already Punched IN!");
-                punches.push({ in: now });
-                if (!record) await supabaseClient.from('attendance').insert([{ employee_id: emp.id, date: dateOnly, punches, total_hours: 0, status: 'Present' }]);
-                else await supabaseClient.from('attendance').update({ punches }).eq('id', record.id);
+        function checkOfflineQueue() {
+            const queue = JSON.parse(localStorage.getItem('offline_punches') || '[]');
+            const badge = document.getElementById('queueBadge');
+            if (queue.length > 0) {
+                badge.innerText = queue.length;
+                badge.classList.remove('hidden');
+                document.getElementById('headerSyncNotice').innerHTML = `<i class="fas fa-circle text-[7px] text-amber-400"></i> ${queue.length} Offline Items Pending`;
             } else {
-                if (punches.length === 0 || punches[punches.length - 1].out) return alert(emp.name + " needs to Punch IN first!");
-                let lastPunch = punches[punches.length - 1];
-                lastPunch.out = now;
-                let sessionHrs = (new Date(lastPunch.out).getTime() - new Date(lastPunch.in).getTime()) / 3600000;
-                totalHrs += sessionHrs;
-                await supabaseClient.from('attendance').update({ punches, total_hours: totalHrs }).eq('id', record.id);
+                badge.classList.add('hidden');
+                document.getElementById('headerSyncNotice').innerHTML = `<i class="fas fa-circle text-[7px] text-green-300"></i> Online System Active`;
             }
-
-            alert(`Admin Bypass Success! Punched ${type.toUpperCase()} for ${emp.name}`);
-            statusEl.innerHTML = `<span class="text-green-400 font-bold">${emp.name} Punched ${type.toUpperCase()}!</span>`;
-            setTimeout(() => { statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready'; loadDashboard(); }, 3000);
         }
 
-        // --- REPORTS ---
+        async function flushOfflineQueue() {
+            const queue = JSON.parse(localStorage.getItem('offline_punches') || '[]');
+            if (queue.length === 0) return alert("Sync queue is empty.");
+
+            const syncIcon = document.getElementById('syncIcon');
+            syncIcon.classList.add('fa-spin');
+
+            let synced = 0;
+            for (const item of queue) {
+                try {
+                    const emp = allEmployees.find(e => e.id === item.empId);
+                    if (emp) await executePunchTransaction(emp, item.type);
+                    synced++;
+                } catch(e) { console.error("Sync item error:", e); }
+            }
+
+            localStorage.removeItem('offline_punches');
+            syncIcon.classList.remove('fa-spin');
+            checkOfflineQueue();
+            alert(`Flushed and synced ${synced} queued punches successfully.`);
+            loadDashboard();
+        }
+
+        window.addEventListener('online', () => { checkOfflineQueue(); flushOfflineQueue(); });
+        window.addEventListener('offline', () => { checkOfflineQueue(); });
+
+        // --- CSV EXPORTS (PRESERVING LEGACY COMPATIBILITY) ---
+        function downloadCsvBlob(csvContent, fileName) {
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         function exportCSV(reportType) {
             if (allEmployees.length === 0) return alert("No data available to export.");
-            
             let csvContent = "";
 
             if (reportType === 'Daily Time') {
@@ -786,17 +2017,11 @@
                     csvContent += `${e.name},${e.emp_code || '-'},${e.department || '-'},${e.status},${e.totalHrs.toFixed(2)},${s1In},${s1Out},${s2In},${s2Out}\n`;
                 });
             }
-
-            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `${reportType.replace(/\s+/g, '_')}_Report.csv`);
-            document.body.appendChild(link);
-            link.click();
+            downloadCsvBlob(csvContent, `${reportType.replace(/\s+/g, '_')}_Report.csv`);
         }
 
         async function exportMonthlyCSV() {
-            const monthVal = document.getElementById('reportMonth').value; 
+            const monthVal = document.getElementById('reportMonth').value || document.getElementById('monthlyReportPicker').value; 
             if (!monthVal) return alert("Please select a month.");
 
             const { data: attendanceList, error } = await supabaseClient.from('attendance')
@@ -812,7 +2037,7 @@
                 let totalOTHours = 0;
                 
                 empAtt.forEach(record => {
-                    let dailyHrs = record.total_hours || 0;
+                    let dailyHrs = Number(record.total_hours) || 0;
                     totalMonthHrs += dailyHrs;
                     if (dailyHrs > 8) totalOTHours += (dailyHrs - 8); 
                 });
@@ -824,13 +2049,9 @@
                 csvContent += `${e.name},${e.emp_code || '-'},${e.department || '-'},${empAtt.length},${totalMonthHrs.toFixed(2)},₹${basic},₹${otSalary.toFixed(2)},₹${totalEstimated.toFixed(2)}\n`;
             });
 
-            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Monthly_Report_${monthVal}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            toggleModal('monthlyReportModal');
+            downloadCsvBlob(csvContent, `Monthly_Report_${monthVal}.csv`);
+            const modal = document.getElementById('monthlyReportModal');
+            if (!modal.classList.contains('hidden')) toggleModal('monthlyReportModal');
         }
     </script>
 </body>
