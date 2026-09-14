@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Attendance Admin Dashboard</title>
     <link rel="icon" href="data:,">
     <!-- Tailwind CSS -->
@@ -13,15 +13,36 @@
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Chart.js for embedded analytics -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Custom scrollbar styling */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #f8fafc; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
+        /* HARD CSS ENFORCEMENT TO PREVENT DESKTOP LEAKAGE ON PHONES */
+        @media (max-width: 1023px) {
+            .desktop-only { display: none !important; }
+            .mobile-only { display: flex !important; }
+            #appContainer {
+                max-width: 28rem !important; /* max-w-md */
+                height: 100dvh !important;
+                border-radius: 0px !important;
+                border: none !important;
+            }
+        }
+        @media (min-width: 1024px) {
+            .desktop-only { display: flex !important; }
+            .mobile-only { display: none !important; }
+            #appContainer {
+                max-width: 80rem !important; /* max-w-7xl */
+                height: 96vh !important;
+                border-radius: 1rem !important;
+            }
+        }
+
         @media print {
             body { background: white; padding: 0; }
             #mainAppView { height: auto; overflow: visible; }
@@ -30,13 +51,10 @@
         }
     </style>
 </head>
-<body class="bg-gray-200 flex justify-center items-center min-h-[100dvh] p-0 md:p-4 transition-all">
-    <!-- 
-      RESPONSIVE MAIN CONTAINER:
-      Mobile (< md): max-w-md h-[100dvh] rounded-none
-      Desktop (>= md): max-w-7xl w-full h-[96vh] rounded-2xl overflow-hidden border border-gray-300 shadow-2xl flex flex-row
-    -->
-    <div id="appContainer" class="w-full max-w-md md:max-w-7xl bg-white h-[100dvh] md:h-[96vh] shadow-2xl flex flex-col md:flex-row overflow-hidden relative mx-auto md:rounded-2xl transition-all duration-300 print-full">
+<body class="bg-gray-200 flex justify-center items-center min-h-[100dvh] p-0 lg:p-4 transition-all overflow-hidden select-none">
+    
+    <!-- MAIN CONTAINER -->
+    <div id="appContainer" class="w-full bg-white shadow-2xl flex flex-col lg:flex-row overflow-hidden relative mx-auto print-full transition-all duration-200">
         
         <!-- ================= LOGIN VIEW ================= -->
         <div id="loginView" class="p-8 flex flex-col justify-center items-center h-full bg-white z-50 absolute inset-0">
@@ -57,8 +75,8 @@
             </div>
         </div>
 
-        <!-- ================= DESKTOP SIDEBAR (Visible >= md) ================= -->
-        <aside id="desktopSidebar" class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 flex-shrink-0 z-30 justify-between select-none">
+        <!-- ================= DESKTOP SIDEBAR (Strictly Hidden on Phones) ================= -->
+        <aside id="desktopSidebar" class="desktop-only flex-col w-64 bg-slate-900 text-slate-300 flex-shrink-0 z-30 justify-between">
             <div>
                 <!-- Brand Header -->
                 <div class="p-5 border-b border-slate-800 flex items-center gap-3">
@@ -67,7 +85,7 @@
                     </div>
                     <div class="overflow-hidden">
                         <h2 id="desktopBrandTitle" class="text-sm font-bold text-white leading-tight truncate">Admin Portal</h2>
-                        <p id="desktopSyncNotice" class="text-[10px] text-green-400 font-medium flex items-center gap-1 mt-0.5">
+                        <p class="text-[10px] text-green-400 font-medium flex items-center gap-1 mt-0.5">
                             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online Mode
                         </p>
                     </div>
@@ -90,7 +108,7 @@
                 </nav>
             </div>
 
-            <!-- Sidebar Footer User Profile -->
+            <!-- Profile / Sign Out -->
             <div class="p-4 border-t border-slate-800 bg-slate-950/40">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2 overflow-hidden">
@@ -104,11 +122,11 @@
             </div>
         </aside>
 
-        <!-- ================= MAIN CONTENT WRAPPER ================= -->
+        <!-- ================= MAIN APP VIEW ================= -->
         <div id="mainAppView" class="hidden flex-1 flex-col h-full overflow-hidden w-full relative">
             
-            <!-- MOBILE TOP HEADER (Visible < md) -->
-            <header class="md:hidden bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-20 flex-shrink-0">
+            <!-- MOBILE TOP HEADER (Strictly Hidden on Desktop) -->
+            <header class="mobile-only bg-blue-600 p-4 text-white justify-between items-center shadow-md z-20 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <i class="fas fa-shield-alt text-lg opacity-80"></i>
                     <div>
@@ -127,8 +145,8 @@
                 </div>
             </header>
 
-            <!-- DESKTOP TOP BAR (Visible >= md) -->
-            <header class="hidden md:flex bg-white border-b border-gray-200 px-6 py-3.5 justify-between items-center z-20 flex-shrink-0">
+            <!-- DESKTOP TOP BAR (Strictly Hidden on Mobile) -->
+            <header class="desktop-only bg-white border-b border-gray-200 px-6 py-3.5 justify-between items-center z-20 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <span id="desktopBreadcrumb" class="text-sm font-bold text-gray-800">Dashboard Overview</span>
                     <span class="text-gray-300">|</span>
@@ -148,88 +166,95 @@
                 </div>
             </header>
 
-            <!-- MAIN SCROLLABLE CONTENT BODY -->
-            <main class="flex-1 overflow-y-auto bg-gray-50 p-3 md:p-6">
+            <!-- SCROLLABLE MAIN CONTENT -->
+            <main class="flex-1 overflow-y-auto bg-gray-50 p-3 lg:p-6">
                 
                 <!-- ================= TAB 1: DASHBOARD ================= -->
                 <div id="tab-dashboard" class="flex flex-col min-h-full">
                     
-                    <!-- KPI SUMMARY CARDS -->
-                    <div class="grid grid-cols-5 md:grid-cols-5 gap-2 md:gap-4 mb-4 text-center">
-                        <button type="button" id="btnFilter-all" onclick="filterList('all')" class="filter-btn ring-2 ring-blue-400 bg-gray-100 border rounded-xl py-2.5 md:py-3 cursor-pointer transition shadow-xs">
-                            <p id="countAll" class="text-lg md:text-2xl font-black text-blue-600 leading-tight">0</p>
-                            <p class="text-[9px] md:text-xs text-gray-500 font-bold uppercase tracking-wider">All Emp</p>
+                    <!-- KPI Summary Cards -->
+                    <div class="grid grid-cols-5 gap-2 lg:gap-4 mb-3 lg:mb-4 text-center">
+                        <button type="button" id="btnFilter-all" onclick="filterList('all')" class="filter-btn ring-2 ring-blue-400 bg-gray-100 border rounded-xl py-2 lg:py-3 cursor-pointer transition shadow-xs">
+                            <p id="countAll" class="text-base lg:text-2xl font-black text-blue-600 leading-tight">0</p>
+                            <p class="text-[9px] lg:text-xs text-gray-500 font-bold uppercase">All Emp</p>
                         </button>
-                        <button type="button" id="btnFilter-in" onclick="filterList('in')" class="filter-btn border rounded-xl py-2.5 md:py-3 bg-white cursor-pointer transition shadow-xs hover:border-green-300">
-                            <p id="countIn" class="text-lg md:text-2xl font-black text-green-500 leading-tight">0</p>
-                            <p class="text-[9px] md:text-xs text-gray-500 font-bold uppercase tracking-wider">Total In</p>
+                        <button type="button" id="btnFilter-in" onclick="filterList('in')" class="filter-btn border rounded-xl py-2 lg:py-3 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countIn" class="text-base lg:text-2xl font-black text-green-500 leading-tight">0</p>
+                            <p class="text-[9px] lg:text-xs text-gray-500 font-bold uppercase">Total In</p>
                         </button>
-                        <button type="button" id="btnFilter-out" onclick="filterList('out')" class="filter-btn border rounded-xl py-2.5 md:py-3 bg-white cursor-pointer transition shadow-xs hover:border-orange-300">
-                            <p id="countOut" class="text-lg md:text-2xl font-black text-orange-500 leading-tight">0</p>
-                            <p class="text-[9px] md:text-xs text-gray-500 font-bold uppercase tracking-wider">Total Out</p>
+                        <button type="button" id="btnFilter-out" onclick="filterList('out')" class="filter-btn border rounded-xl py-2 lg:py-3 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countOut" class="text-base lg:text-2xl font-black text-orange-500 leading-tight">0</p>
+                            <p class="text-[9px] lg:text-xs text-gray-500 font-bold uppercase">Total Out</p>
                         </button>
-                        <button type="button" id="btnFilter-late" onclick="filterList('late')" class="filter-btn border rounded-xl py-2.5 md:py-3 bg-white cursor-pointer transition shadow-xs hover:border-red-300">
-                            <p id="countLate" class="text-lg md:text-2xl font-black text-red-500 leading-tight">0</p>
-                            <p class="text-[9px] md:text-xs text-gray-500 font-bold uppercase tracking-wider">Late</p>
+                        <button type="button" id="btnFilter-late" onclick="filterList('late')" class="filter-btn border rounded-xl py-2 lg:py-3 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countLate" class="text-base lg:text-2xl font-black text-red-500 leading-tight">0</p>
+                            <p class="text-[9px] lg:text-xs text-gray-500 font-bold uppercase">Late</p>
                         </button>
-                        <button type="button" id="btnFilter-missing" onclick="filterList('missing')" class="filter-btn border rounded-xl py-2.5 md:py-3 bg-white cursor-pointer transition shadow-xs hover:border-gray-300">
-                            <p id="countMissing" class="text-lg md:text-2xl font-black text-gray-500 leading-tight">0</p>
-                            <p class="text-[9px] md:text-xs text-gray-500 font-bold uppercase tracking-wider">Absent</p>
+                        <button type="button" id="btnFilter-missing" onclick="filterList('missing')" class="filter-btn border rounded-xl py-2 lg:py-3 bg-white cursor-pointer transition shadow-xs">
+                            <p id="countMissing" class="text-base lg:text-2xl font-black text-gray-500 leading-tight">0</p>
+                            <p class="text-[9px] lg:text-xs text-gray-500 font-bold uppercase">Absent</p>
                         </button>
                     </div>
 
-                    <!-- DESKTOP SPLIT VIEW: Left is Table/Roster, Right is Form / Analytics -->
-                    <div class="flex flex-col md:flex-row gap-6 items-start">
+                    <!-- Layout: Stack on Mobile, Side-by-side on Landscape/Desktop -->
+                    <div class="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
                         
-                        <!-- Roster Column -->
-                        <div class="w-full md:flex-1 flex flex-col">
+                        <!-- Roster Area -->
+                        <div class="w-full lg:flex-1 flex flex-col">
                             <!-- Search & Action Filters -->
                             <div class="flex gap-2 mb-3">
                                 <div class="relative flex-1">
-                                    <i class="fas fa-search absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-                                    <input type="text" id="searchInput" onkeyup="searchEmployees()" placeholder="Search by name, code or department..." class="w-full pl-9 pr-3 py-2 border rounded-xl bg-white outline-none focus:border-blue-500 text-xs md:text-sm shadow-xs">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
+                                    <input type="text" id="searchInput" onkeyup="searchEmployees()" placeholder="Search by name, code or department..." class="w-full pl-9 pr-3 py-2 border rounded-xl bg-white outline-none focus:border-blue-500 text-xs lg:text-sm shadow-xs">
                                 </div>
-                                <button type="button" onclick="toggleAnalytics()" class="md:hidden bg-gray-100 hover:bg-gray-200 border text-gray-600 px-3 rounded-xl flex items-center justify-center text-xs">
+                                <button type="button" onclick="toggleAnalytics()" class="lg:hidden bg-gray-100 hover:bg-gray-200 border text-gray-600 px-3 rounded-xl flex items-center justify-center text-xs">
                                     <i class="fas fa-chart-pie"></i>
                                 </button>
-                                <button type="button" onclick="openBulkModal()" class="md:hidden bg-gray-100 hover:bg-gray-200 border text-gray-600 px-3 rounded-xl flex items-center justify-center text-xs">
+                                <button type="button" onclick="openBulkModal()" class="lg:hidden bg-gray-100 hover:bg-gray-200 border text-gray-600 px-3 rounded-xl flex items-center justify-center text-xs">
                                     <i class="fas fa-tasks"></i>
                                 </button>
                             </div>
 
-                            <div class="flex justify-between items-center mb-2">
-                                <h2 class="text-xs md:text-sm font-bold text-gray-700 uppercase tracking-wide">Today's Attendance Roster</h2>
-                                <span id="attendanceDateLabel" class="text-[10px] md:text-xs font-semibold text-gray-400">--</span>
+                            <!-- Mobile Analytics (Collapsible) -->
+                            <div id="analyticsContainerMobile" class="hidden mb-3 bg-white p-3 rounded-xl border border-gray-200 shadow-xs lg:hidden">
+                                <div class="h-36 w-full relative">
+                                    <canvas id="todayRatioChartMobile"></canvas>
+                                </div>
                             </div>
 
-                            <!-- Employee List Container -->
+                            <div class="flex justify-between items-center mb-2">
+                                <h2 class="text-xs lg:text-sm font-bold text-gray-700 uppercase tracking-wide">Today's Attendance Roster</h2>
+                                <span id="attendanceDateLabel" class="text-[10px] lg:text-xs font-semibold text-gray-400">--</span>
+                            </div>
+
                             <div id="employeeList" class="flex flex-col gap-3 pb-6"></div>
 
-                            <div class="md:hidden flex justify-center pb-4">
+                            <!-- Mobile Add Employee Trigger -->
+                            <div class="lg:hidden flex justify-center pb-4">
                                 <button type="button" onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2 text-xs">
                                     <i class="fas fa-user-plus"></i> Add Employee
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Secondary Right Column for Desktop (Add/Edit Form + Analytics) -->
-                        <div id="desktopSidePanel" class="w-full md:w-96 flex flex-col gap-4">
+                        <!-- Side Column (Always Visible on Desktop, Modal/Collapsible on Mobile) -->
+                        <div id="desktopSidePanel" class="w-full lg:w-96 flex flex-col gap-4">
                             
-                            <!-- ANALYTICS CARD -->
-                            <div id="analyticsContainer" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <!-- Desktop Analytics Card -->
+                            <div id="analyticsContainerDesktop" class="desktop-only flex-col bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <div class="flex justify-between items-center mb-3">
-                                    <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider"><i class="fas fa-chart-pie text-blue-500 mr-1.5"></i> Today's Attendance Ratio</h3>
+                                    <h3 class="text-xs font-bold text-gray-700 uppercase tracking-wider"><i class="fas fa-chart-pie text-blue-500 mr-1.5"></i> Attendance Overview</h3>
                                 </div>
                                 <div class="h-44 w-full relative">
-                                    <canvas id="todayRatioChart"></canvas>
+                                    <canvas id="todayRatioChartDesktop"></canvas>
                                 </div>
                             </div>
 
-                            <!-- ADD / EDIT EMPLOYEE FORM -->
-                            <div id="addEmployeeForm" class="hidden md:block bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition">
+                            <!-- Add / Edit Employee Form -->
+                            <div id="addEmployeeForm" class="hidden lg:block bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition">
                                 <div class="flex justify-between items-center border-b pb-2 mb-3">
                                     <h3 id="formEmployeeTitle" class="font-bold text-gray-800 text-sm">New Employee Details</h3>
-                                    <button type="button" onclick="toggleAddForm()" class="text-gray-400 hover:text-gray-600 text-xs"><i class="fas fa-times"></i></button>
+                                    <button type="button" onclick="toggleAddForm()" class="lg:hidden text-gray-400 hover:text-gray-600 text-xs"><i class="fas fa-times"></i></button>
                                 </div>
                                 <input type="hidden" id="editEmpId" value="">
                                 
@@ -259,7 +284,6 @@
                                     </select>
                                     <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden w-full p-2.5 border rounded-lg text-xs bg-gray-50 outline-none">
                                     
-                                    <!-- Shift Selector -->
                                     <select id="eTimingType" onchange="handleTimingChange()" class="w-full p-2.5 border rounded-lg text-xs bg-blue-50 font-bold text-blue-700 outline-none">
                                         <option value="Single">Single Fixed Shift</option>
                                         <option value="Dual">Dual Shift (Flexi)</option>
@@ -301,9 +325,9 @@
 
                 <!-- ================= TAB 2: ADMIN KIOSK PUNCH ================= -->
                 <div id="tab-punch" class="hidden flex-col bg-gray-50 min-h-full max-w-2xl mx-auto">
-                    <div class="h-80 bg-black relative flex items-center justify-center overflow-hidden rounded-2xl shadow-inner border-4 border-gray-200 mb-4">
+                    <div class="h-72 lg:h-80 bg-black relative flex items-center justify-center overflow-hidden rounded-2xl shadow-inner border-4 border-gray-200 mb-4">
                         <video id="adminVideo" autoplay muted playsinline class="object-cover w-full h-full transform scale-x-[-1]"></video>
-                        <div class="absolute inset-0 border-2 border-dashed border-white opacity-40 m-12 rounded-full pointer-events-none flex items-center justify-center">
+                        <div class="absolute inset-0 border-2 border-dashed border-white opacity-40 m-8 lg:m-12 rounded-full pointer-events-none flex items-center justify-center">
                             <div class="w-full h-full bg-black bg-opacity-20 rounded-full"></div>
                         </div>
                         <div class="absolute bottom-4 left-0 right-0 flex justify-center">
@@ -314,22 +338,22 @@
                     </div>
                     
                     <div class="flex-grow flex flex-col justify-start">
-                        <p class="text-center text-sm font-medium text-gray-500 mb-4">Position face inside oval frame. Kiosk location bypass active.</p>
-                        <div class="grid grid-cols-2 gap-4">
-                            <button type="button" onclick="adminKioskPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-6 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
-                                <i class="fas fa-sign-in-alt text-3xl mb-1"></i>PUNCH IN
+                        <p class="text-center text-xs lg:text-sm font-medium text-gray-500 mb-4">Position face inside oval frame. Kiosk location bypass active.</p>
+                        <div class="grid grid-cols-2 gap-3 lg:gap-4">
+                            <button type="button" onclick="adminKioskPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 lg:py-6 rounded-2xl font-bold text-base lg:text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
+                                <i class="fas fa-sign-in-alt text-2xl lg:text-3xl mb-1"></i>PUNCH IN
                             </button>
-                            <button type="button" onclick="adminKioskPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-6 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
-                                <i class="fas fa-sign-out-alt text-3xl mb-1"></i>PUNCH OUT
+                            <button type="button" onclick="adminKioskPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 lg:py-6 rounded-2xl font-bold text-base lg:text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
+                                <i class="fas fa-sign-out-alt text-2xl lg:text-3xl mb-1"></i>PUNCH OUT
                             </button>
                         </div>
                         
-                        <div class="mt-6 bg-white p-4 rounded-xl border border-gray-200 text-xs text-gray-600 shadow-xs flex justify-between items-center">
+                        <div class="mt-4 lg:mt-6 bg-white p-3 lg:p-4 rounded-xl border border-gray-200 text-xs text-gray-600 shadow-xs flex justify-between items-center">
                             <div>
-                                <span class="font-bold text-gray-800 text-sm block"><i class="fas fa-id-card-alt text-blue-500 mr-1.5"></i> Face Descriptor Registry</span>
-                                <span class="text-[11px] text-gray-400">Trained employee biometric models</span>
+                                <span class="font-bold text-gray-800 text-xs lg:text-sm block"><i class="fas fa-id-card-alt text-blue-500 mr-1.5"></i> Face Descriptor Registry</span>
+                                <span class="text-[10px] lg:text-[11px] text-gray-400">Trained employee biometric models</span>
                             </div>
-                            <span id="faceRegisteredCount" class="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">0 registered</span>
+                            <span id="faceRegisteredCount" class="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-[11px]">0 registered</span>
                         </div>
                     </div>
                 </div>
@@ -339,22 +363,22 @@
                     
                     <!-- Sub-navigation tabs -->
                     <div class="flex border-b bg-gray-50 text-xs font-bold text-gray-600">
-                        <button type="button" id="subtab-btn-daily" onclick="switchReportSubTab('daily')" class="flex-1 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition">
-                            <i class="far fa-calendar-check mr-1.5"></i> Daily Report
+                        <button type="button" id="subtab-btn-daily" onclick="switchReportSubTab('daily')" class="flex-1 py-3 lg:py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition">
+                            <i class="far fa-calendar-check mr-1"></i> Daily Report
                         </button>
-                        <button type="button" id="subtab-btn-monthly" onclick="switchReportSubTab('monthly')" class="flex-1 py-3.5 text-gray-500 hover:text-blue-600 transition">
-                            <i class="far fa-calendar-alt mr-1.5"></i> Monthly Summary
+                        <button type="button" id="subtab-btn-monthly" onclick="switchReportSubTab('monthly')" class="flex-1 py-3 lg:py-3.5 text-gray-500 hover:text-blue-600 transition">
+                            <i class="far fa-calendar-alt mr-1"></i> Monthly Summary
                         </button>
-                        <button type="button" id="subtab-btn-exports" onclick="switchReportSubTab('exports')" class="flex-1 py-3.5 text-gray-500 hover:text-blue-600 transition">
-                            <i class="fas fa-file-export mr-1.5"></i> Quick Exports
+                        <button type="button" id="subtab-btn-exports" onclick="switchReportSubTab('exports')" class="flex-1 py-3 lg:py-3.5 text-gray-500 hover:text-blue-600 transition">
+                            <i class="fas fa-file-export mr-1"></i> Quick Exports
                         </button>
                     </div>
 
-                    <!-- ON-SCREEN DAILY REPORT VIEW -->
-                    <div id="report-view-daily" class="p-4 md:p-6 flex flex-col flex-1">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                    <!-- Daily Report View -->
+                    <div id="report-view-daily" class="p-3 lg:p-6 flex flex-col flex-1">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3">
                             <div class="flex items-center gap-2">
-                                <input type="date" id="dailyReportDate" onchange="generateDailyReport()" class="p-2 border rounded-lg text-xs md:text-sm bg-gray-50 font-medium">
+                                <input type="date" id="dailyReportDate" onchange="generateDailyReport()" class="p-2 border rounded-lg text-xs bg-gray-50 font-medium">
                                 <button type="button" onclick="generateDailyReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition">
                                     <i class="fas fa-redo"></i>
                                 </button>
@@ -363,12 +387,11 @@
                                 </button>
                             </div>
 
-                            <!-- Horizontal Dropdown Filters -->
                             <div class="flex items-center gap-2">
-                                <select id="dailyFilterDept" onchange="renderDailyReportTable()" class="p-2 border rounded-lg text-xs bg-gray-50 min-w-[120px]">
+                                <select id="dailyFilterDept" onchange="renderDailyReportTable()" class="p-2 border rounded-lg text-xs bg-gray-50 flex-1 lg:min-w-[120px]">
                                     <option value="All">All Depts</option>
                                 </select>
-                                <select id="dailyFilterStatus" onchange="renderDailyReportTable()" class="p-2 border rounded-lg text-xs bg-gray-50 min-w-[120px]">
+                                <select id="dailyFilterStatus" onchange="renderDailyReportTable()" class="p-2 border rounded-lg text-xs bg-gray-50 flex-1 lg:min-w-[120px]">
                                     <option value="All">All Statuses</option>
                                     <option value="Present">Present</option>
                                     <option value="Absent">Absent</option>
@@ -381,79 +404,79 @@
                         </div>
 
                         <!-- KPI Summary Row -->
-                        <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4 text-center">
-                            <div class="bg-blue-50 border border-blue-100 p-2.5 rounded-xl">
-                                <p id="dailyKpiEmp" class="text-base md:text-xl font-bold text-blue-700">0</p>
-                                <p class="text-[9px] md:text-[10px] text-gray-500 font-semibold uppercase">Total Emp</p>
+                        <div class="grid grid-cols-3 lg:grid-cols-6 gap-2 mb-3 text-center">
+                            <div class="bg-blue-50 border border-blue-100 p-2 rounded-xl">
+                                <p id="dailyKpiEmp" class="text-sm lg:text-xl font-bold text-blue-700">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Total</p>
                             </div>
-                            <div class="bg-green-50 border border-green-100 p-2.5 rounded-xl">
-                                <p id="dailyKpiPresent" class="text-base md:text-xl font-bold text-green-700">0</p>
-                                <p class="text-[9px] md:text-[10px] text-gray-500 font-semibold uppercase">Present</p>
+                            <div class="bg-green-50 border border-green-100 p-2 rounded-xl">
+                                <p id="dailyKpiPresent" class="text-sm lg:text-xl font-bold text-green-700">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Present</p>
                             </div>
-                            <div class="bg-red-50 border border-red-100 p-2.5 rounded-xl">
-                                <p id="dailyKpiAbsent" class="text-base md:text-xl font-bold text-red-600">0</p>
-                                <p class="text-[9px] md:text-[10px] text-gray-500 font-semibold uppercase">Absent</p>
+                            <div class="bg-red-50 border border-red-100 p-2 rounded-xl">
+                                <p id="dailyKpiAbsent" class="text-sm lg:text-xl font-bold text-red-600">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Absent</p>
                             </div>
-                            <div class="bg-orange-50 border border-orange-100 p-2.5 rounded-xl">
-                                <p id="dailyKpiLate" class="text-base md:text-xl font-bold text-orange-600">0</p>
-                                <p class="text-[9px] md:text-[10px] text-gray-500 font-semibold uppercase">Late</p>
+                            <div class="bg-orange-50 border border-orange-100 p-2 rounded-xl">
+                                <p id="dailyKpiLate" class="text-sm lg:text-xl font-bold text-orange-600">0</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Late</p>
                             </div>
-                            <div class="bg-indigo-50 border border-indigo-100 p-2.5 rounded-xl">
-                                <p id="dailyKpiHours" class="text-base md:text-xl font-bold text-indigo-700">0h</p>
-                                <p class="text-[9px] md:text-[10px] text-gray-500 font-semibold uppercase">Total Hours</p>
+                            <div class="bg-indigo-50 border border-indigo-100 p-2 rounded-xl">
+                                <p id="dailyKpiHours" class="text-sm lg:text-xl font-bold text-indigo-700">0h</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">Hours</p>
                             </div>
-                            <div class="bg-purple-50 border border-purple-100 p-2.5 rounded-xl">
-                                <p id="dailyKpiOtHours" class="text-base md:text-xl font-bold text-purple-700">0h</p>
-                                <p class="text-[9px] md:text-[10px] text-gray-500 font-semibold uppercase">Overtime</p>
+                            <div class="bg-purple-50 border border-purple-100 p-2 rounded-xl">
+                                <p id="dailyKpiOtHours" class="text-sm lg:text-xl font-bold text-purple-700">0h</p>
+                                <p class="text-[9px] text-gray-500 font-semibold uppercase">OT</p>
                             </div>
                         </div>
 
-                        <!-- Daily Table with Full Horizontal Desktop Spread -->
+                        <!-- Table -->
                         <div class="overflow-x-auto border rounded-xl flex-1 bg-white shadow-2xs">
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-gray-100 text-gray-600 border-b select-none">
                                     <tr>
-                                        <th class="p-3">Employee</th>
-                                        <th class="p-3">Department</th>
-                                        <th class="p-3">Status</th>
-                                        <th class="p-3">Shift 1 (IN / OUT)</th>
-                                        <th class="p-3">Shift 2 (IN / OUT)</th>
-                                        <th class="p-3 text-right">Work / OT Hrs</th>
-                                        <th class="p-3 text-right">Estimated Day ₹</th>
+                                        <th class="p-2.5">Employee</th>
+                                        <th class="p-2.5">Dept</th>
+                                        <th class="p-2.5">Status</th>
+                                        <th class="p-2.5">Shift 1</th>
+                                        <th class="p-2.5">Shift 2</th>
+                                        <th class="p-2.5 text-right">Work / OT</th>
+                                        <th class="p-2.5 text-right">Est. Day ₹</th>
                                     </tr>
                                 </thead>
-                                <tbody id="dailyReportTableBody" class="divide-y divide-gray-100">
+                                <tbody id="dailyReportTableBody" class="divide-y divide-gray-100 text-[11px]">
                                     <tr><td colspan="7" class="text-center p-6 text-gray-400">Loading daily report...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <!-- ON-SCREEN MONTHLY REPORT VIEW -->
-                    <div id="report-view-monthly" class="hidden p-4 md:p-6 flex flex-col flex-1">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                    <!-- Monthly Report View -->
+                    <div id="report-view-monthly" class="hidden p-3 lg:p-6 flex flex-col flex-1">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2 mb-3">
                             <div class="flex items-center gap-2">
-                                <input type="month" id="monthlyReportPicker" onchange="generateMonthlyReport()" class="p-2 border rounded-lg text-xs md:text-sm bg-gray-50 font-medium">
+                                <input type="month" id="monthlyReportPicker" onchange="generateMonthlyReport()" class="p-2 border rounded-lg text-xs bg-gray-50 font-medium">
                                 <button type="button" onclick="generateMonthlyReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition">
                                     <i class="fas fa-sync"></i>
                                 </button>
-                                <button type="button" onclick="exportMonthlyCSV()" class="bg-green-600 hover:bg-green-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
-                                    <i class="fas fa-file-excel"></i> Export CSV
+                                <button type="button" onclick="exportMonthlyCSV()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                    <i class="fas fa-file-excel"></i> CSV
                                 </button>
                             </div>
                             
-                            <div class="grid grid-cols-3 gap-2 text-center md:min-w-[450px]">
+                            <div class="grid grid-cols-3 gap-2 text-center">
                                 <div class="bg-blue-50 border border-blue-100 p-2 rounded-lg">
-                                    <p id="monthlyKpiPresents" class="text-sm md:text-lg font-bold text-blue-700">0</p>
-                                    <p class="text-[9px] text-gray-500 uppercase font-semibold">Total Present</p>
+                                    <p id="monthlyKpiPresents" class="text-xs lg:text-lg font-bold text-blue-700">0</p>
+                                    <p class="text-[8px] lg:text-[9px] text-gray-500 uppercase font-semibold">Total Present</p>
                                 </div>
                                 <div class="bg-purple-50 border border-purple-100 p-2 rounded-lg">
-                                    <p id="monthlyKpiOtHours" class="text-sm md:text-lg font-bold text-purple-700">0h</p>
-                                    <p class="text-[9px] text-gray-500 uppercase font-semibold">Total OT</p>
+                                    <p id="monthlyKpiOtHours" class="text-xs lg:text-lg font-bold text-purple-700">0h</p>
+                                    <p class="text-[8px] lg:text-[9px] text-gray-500 uppercase font-semibold">Total OT</p>
                                 </div>
                                 <div class="bg-emerald-50 border border-emerald-100 p-2 rounded-lg">
-                                    <p id="monthlyKpiPayroll" class="text-sm md:text-lg font-bold text-emerald-700">₹0</p>
-                                    <p class="text-[9px] text-gray-500 uppercase font-semibold">Est. Payroll</p>
+                                    <p id="monthlyKpiPayroll" class="text-xs lg:text-lg font-bold text-emerald-700">₹0</p>
+                                    <p class="text-[8px] lg:text-[9px] text-gray-500 uppercase font-semibold">Est. Payroll</p>
                                 </div>
                             </div>
                         </div>
@@ -462,37 +485,37 @@
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-gray-100 text-gray-600 border-b select-none">
                                     <tr>
-                                        <th class="p-3">Employee</th>
-                                        <th class="p-3">Department</th>
-                                        <th class="p-3">Present / Absent / Late</th>
-                                        <th class="p-3 text-right">Total Hours (OT)</th>
-                                        <th class="p-3 text-right">Basic / Overtime Pay</th>
-                                        <th class="p-3 text-right">Gross Salary (₹)</th>
+                                        <th class="p-2.5">Employee</th>
+                                        <th class="p-2.5">Dept</th>
+                                        <th class="p-2.5">P / A / L</th>
+                                        <th class="p-2.5 text-right">Hours (OT)</th>
+                                        <th class="p-2.5 text-right">Basic / OT ₹</th>
+                                        <th class="p-2.5 text-right">Gross (₹)</th>
                                     </tr>
                                 </thead>
-                                <tbody id="monthlyReportTableBody" class="divide-y divide-gray-100">
+                                <tbody id="monthlyReportTableBody" class="divide-y divide-gray-100 text-[11px]">
                                     <tr><td colspan="6" class="text-center p-6 text-gray-400">Select month to review data.</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <!-- QUICK EXPORT MENU -->
+                    <!-- Quick Exports Menu -->
                     <div id="report-view-exports" class="hidden flex flex-col w-full divide-y divide-gray-100">
-                        <button type="button" onclick="exportCSV('Daily Time')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
-                            <div class="flex items-center gap-4"><i class="far fa-calendar-day text-gray-400 w-5"></i> Daily Time Tracking Report (CSV)</div>
+                        <button type="button" onclick="exportCSV('Daily Time')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
+                            <div class="flex items-center gap-3"><i class="far fa-calendar-day text-gray-400 w-5"></i> Daily Time Tracking Report (CSV)</div>
                             <i class="fas fa-download text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="exportCSV('Punch Log')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
-                            <div class="flex items-center gap-4"><i class="fas fa-file-invoice text-gray-400 w-5"></i> Punch Log Report (CSV)</div>
+                        <button type="button" onclick="exportCSV('Punch Log')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
+                            <div class="flex items-center gap-3"><i class="fas fa-file-invoice text-gray-400 w-5"></i> Punch Log Report (CSV)</div>
                             <i class="fas fa-download text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="toggleModal('monthlyReportModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
-                            <div class="flex items-center gap-4"><i class="far fa-calendar-alt text-gray-400 w-5"></i> Monthly Time Tracking Report (Modal)</div>
+                        <button type="button" onclick="toggleModal('monthlyReportModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
+                            <div class="flex items-center gap-3"><i class="far fa-calendar-alt text-gray-400 w-5"></i> Monthly Time Tracking Report (Modal)</div>
                             <i class="fas fa-download text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="exportAuditLogCSV()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
-                            <div class="flex items-center gap-4"><i class="fas fa-history text-gray-400 w-5"></i> System Audit Trail (CSV)</div>
+                        <button type="button" onclick="exportAuditLogCSV()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
+                            <div class="flex items-center gap-3"><i class="fas fa-history text-gray-400 w-5"></i> System Audit Trail (CSV)</div>
                             <i class="fas fa-download text-gray-300"></i>
                         </button>
                     </div>
@@ -503,19 +526,19 @@
                 <div id="tab-settings" class="hidden flex-col bg-white rounded-xl border border-gray-200 min-h-full max-w-2xl mx-auto shadow-sm overflow-hidden">
                     <div class="bg-gray-100 p-3 px-5 text-xs font-bold text-gray-600 uppercase tracking-wider">Management</div>
                     <div class="flex flex-col w-full divide-y divide-gray-100">
-                        <button type="button" onclick="openLocationModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
+                        <button type="button" onclick="openLocationModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
                             <div class="flex items-center gap-4"><i class="fas fa-map-marker-alt text-blue-500 w-5"></i> Location & Geofencing</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="openCalendarModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
+                        <button type="button" onclick="openCalendarModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
                             <div class="flex items-center gap-4"><i class="far fa-calendar-alt text-purple-500 w-5"></i> Calendar (Weekly Offs)</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="openSalaryModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
+                        <button type="button" onclick="openSalaryModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
                             <div class="flex items-center gap-4"><i class="fas fa-money-check-alt text-green-500 w-5"></i> Salary & Overtime Config</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="openLeaveModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
+                        <button type="button" onclick="openLeaveModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
                             <div class="flex items-center gap-4"><i class="fas fa-plane-departure text-amber-500 w-5"></i> Leave Management</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
@@ -523,11 +546,11 @@
 
                     <div class="bg-gray-100 p-3 px-5 text-xs font-bold text-gray-600 uppercase tracking-wider mt-4">Security & Storage</div>
                     <div class="flex flex-col w-full divide-y divide-gray-100">
-                        <button type="button" onclick="toggleModal('changePasswordModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
+                        <button type="button" onclick="toggleModal('changePasswordModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
                             <div class="flex items-center gap-4"><i class="fas fa-lock text-gray-500 w-5"></i> Change Password</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="backupSystemData()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-sm text-gray-700 transition">
+                        <button type="button" onclick="backupSystemData()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
                             <div class="flex items-center gap-4"><i class="fas fa-file-archive text-teal-600 w-5"></i> Backup System JSON</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
@@ -536,8 +559,8 @@
 
             </main>
 
-            <!-- MOBILE BOTTOM FOOTER NAVIGATION (Visible < md) -->
-            <footer class="md:hidden bg-white border-t flex justify-around p-2 text-gray-500 text-[10px] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-20 flex-shrink-0">
+            <!-- MOBILE BOTTOM FOOTER NAVIGATION (Strictly Hidden on Desktop) -->
+            <footer class="mobile-only bg-white border-t justify-around p-2 text-gray-500 text-[10px] shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-20 flex-shrink-0">
                 <button type="button" id="nav-dashboard" onclick="switchTab('dashboard')" class="flex flex-col items-center text-blue-600 font-bold w-1/4"><i class="fas fa-th-large text-xl mb-1"></i> Dashboard</button>
                 <button type="button" id="nav-punch" onclick="switchTab('punch')" class="flex flex-col items-center hover:text-blue-600 w-1/4"><i class="fas fa-camera text-xl mb-1"></i> Punch</button>
                 <button type="button" id="nav-reports" onclick="switchTab('reports')" class="flex flex-col items-center hover:text-blue-600 w-1/4"><i class="fas fa-file-alt text-xl mb-1"></i> Reports</button>
@@ -765,12 +788,13 @@
         const supabaseKey = 'sb_publishable_ZTzdxKpodw0lWcBaMt0IzQ_leTZnHfC';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
         
-        // State variables
+        // Application State
         let allEmployees = [];
         let currentAdmin = null;
         let adminFaceMatcher = null;
         let inactivityTimer; 
-        let todayChartInstance = null;
+        let todayChartDesktop = null;
+        let todayChartMobile = null;
         let trainingTargetEmp = null;
         const adminVideo = document.getElementById('adminVideo');
         const trainVideo = document.getElementById('trainVideo');
@@ -806,8 +830,6 @@
             document.getElementById('loginView').classList.add('hidden');
             document.getElementById('mainAppView').classList.remove('hidden');
             document.getElementById('mainAppView').classList.add('flex');
-            document.getElementById('desktopSidebar').classList.remove('hidden');
-            document.getElementById('desktopSidebar').classList.add('md:flex');
             
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('attendanceDateLabel').innerText = todayStr;
@@ -844,8 +866,6 @@
             clearTimeout(inactivityTimer);
             document.getElementById('mainAppView').classList.add('hidden');
             document.getElementById('mainAppView').classList.remove('flex');
-            document.getElementById('desktopSidebar').classList.add('hidden');
-            document.getElementById('desktopSidebar').classList.remove('md:flex');
             document.getElementById('loginView').classList.remove('hidden');
             stopVideoStream(adminVideo);
             stopVideoStream(trainVideo);
@@ -889,17 +909,15 @@
             logAudit("Password Change", { admin_id: currentAdmin.id });
         }
 
-        // --- NAVIGATION & TABS ---
+        // --- NAVIGATION ---
         function switchTab(tabName) {
             ['dashboard', 'punch', 'reports', 'settings'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`tab-${t}`).classList.remove('flex');
                 
-                // Mobile Nav styling
                 const mBtn = document.getElementById(`nav-${t}`);
                 if (mBtn) mBtn.className = "flex flex-col items-center hover:text-blue-600 w-1/4 text-gray-500";
                 
-                // Desktop Nav styling
                 const dBtn = document.getElementById(`desknav-${t}`);
                 if (dBtn) dBtn.className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition hover:bg-slate-800 text-slate-400 hover:text-slate-200";
             });
@@ -913,7 +931,6 @@
             const activeDBtn = document.getElementById(`desknav-${tabName}`);
             if (activeDBtn) activeDBtn.className = "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition bg-blue-600 text-white shadow-sm";
 
-            // Update Desktop Breadcrumb Title
             const titles = {
                 dashboard: "Dashboard Overview",
                 punch: "AI Face Kiosk Punching",
@@ -931,10 +948,10 @@
         function switchReportSubTab(sub) {
             ['daily', 'monthly', 'exports'].forEach(s => {
                 document.getElementById(`report-view-${s}`).classList.add('hidden');
-                document.getElementById(`subtab-btn-${s}`).className = "flex-1 py-3.5 text-gray-500 hover:text-blue-600 transition";
+                document.getElementById(`subtab-btn-${s}`).className = "flex-1 py-3 lg:py-3.5 text-gray-500 hover:text-blue-600 transition";
             });
             document.getElementById(`report-view-${sub}`).classList.remove('hidden');
-            document.getElementById(`subtab-btn-${sub}`).className = "flex-1 py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white font-bold transition";
+            document.getElementById(`subtab-btn-${sub}`).className = "flex-1 py-3 lg:py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white font-bold transition";
 
             if (sub === 'daily') generateDailyReport();
             if (sub === 'monthly') generateMonthlyReport();
@@ -943,7 +960,7 @@
         function toggleModal(modalId) { document.getElementById(modalId).classList.toggle('hidden'); }
 
         function toggleAnalytics() {
-            const container = document.getElementById('analyticsContainer');
+            const container = document.getElementById('analyticsContainerMobile');
             container.classList.toggle('hidden');
             if (!container.classList.contains('hidden')) renderChart();
         }
@@ -955,7 +972,7 @@
             }
         }
 
-        // --- ROSTER & REALTIME DASHBOARD LOGIC ---
+        // --- DASHBOARD LOGIC ---
         function formatTime(isoStr) { return isoStr ? new Date(isoStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'; }
         
         function calculateLate(empTiming, firstPunchInISO) {
@@ -1009,7 +1026,7 @@
                 try {
                     const { data: leaves } = await supabaseClient.from('leaves').select('*').eq('leave_date', today);
                     if (leaves) todayLeaves = leaves;
-                } catch(e) { /* table optional */ }
+                } catch(e) { }
                 
                 allEmployees = (employees || []).map(emp => {
                     const record = attendance?.find(a => a.employee_id === emp.id);
@@ -1075,31 +1092,37 @@
         }
 
         function renderChart() {
-            const chartCanvas = document.getElementById('todayRatioChart');
-            if (!chartCanvas) return;
-            const ctx = chartCanvas.getContext('2d');
             const inCount = allEmployees.filter(e => e.status === 'in').length;
             const outCount = allEmployees.filter(e => e.status === 'out').length;
             const missingCount = allEmployees.filter(e => e.status === 'missing').length;
             const lateCount = allEmployees.filter(e => e.isLate).length;
+            const chartData = {
+                labels: ['In', 'Out', 'Late', 'Absent'],
+                datasets: [{
+                    data: [inCount, outCount, lateCount, missingCount],
+                    backgroundColor: ['#22c55e', '#f97316', '#ef4444', '#9ca3af'],
+                    borderWidth: 2
+                }]
+            };
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } } }
+            };
 
-            if (todayChartInstance) todayChartInstance.destroy();
-            todayChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['In', 'Out', 'Late', 'Absent'],
-                    datasets: [{
-                        data: [inCount, outCount, lateCount, missingCount],
-                        backgroundColor: ['#22c55e', '#f97316', '#ef4444', '#9ca3af'],
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } }
-                }
-            });
+            // Desktop Chart
+            const desktopCanvas = document.getElementById('todayRatioChartDesktop');
+            if (desktopCanvas) {
+                if (todayChartDesktop) todayChartDesktop.destroy();
+                todayChartDesktop = new Chart(desktopCanvas.getContext('2d'), { type: 'doughnut', data: chartData, options: chartOptions });
+            }
+
+            // Mobile Chart
+            const mobileCanvas = document.getElementById('todayRatioChartMobile');
+            if (mobileCanvas) {
+                if (todayChartMobile) todayChartMobile.destroy();
+                todayChartMobile = new Chart(mobileCanvas.getContext('2d'), { type: 'doughnut', data: chartData, options: chartOptions });
+            }
         }
 
         function filterList(status) {
@@ -1122,7 +1145,7 @@
         function renderList(list) {
             const container = document.getElementById('employeeList');
             if(!list || list.length === 0) {
-                container.innerHTML = `<div class="text-center text-gray-500 py-8 text-sm bg-white rounded-xl border">No employees match this filter.</div>`;
+                container.innerHTML = `<div class="text-center text-gray-500 py-6 text-xs lg:text-sm bg-white rounded-xl border">No employees match this filter.</div>`;
                 return;
             }
 
@@ -1157,7 +1180,7 @@
                 }
 
                 return `
-                <div class="bg-white border border-gray-200 rounded-xl p-3.5 shadow-xs flex flex-col relative transition hover:border-blue-200">
+                <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-xs flex flex-col relative transition hover:border-blue-200">
                     <div class="flex justify-between items-start mb-2">
                         <div>
                             <div class="flex items-center gap-2">
@@ -1168,7 +1191,7 @@
                         </div>
                         <div class="text-right">
                             ${badge}
-                            <div class="mt-1.5 text-right">
+                            <div class="mt-1 text-right">
                                 <span class="text-[9px] text-gray-400 uppercase font-bold">Total: </span>
                                 <span class="text-blue-600 font-bold text-xs">${emp.totalHrs.toFixed(2)}h</span>
                             </div>
@@ -1177,8 +1200,7 @@
 
                     ${punchHTML}
 
-                    <!-- Action buttons -->
-                    <div class="flex gap-1.5 mt-3 pt-2 border-t border-dashed border-gray-200">
+                    <div class="flex gap-1.5 mt-2.5 pt-2 border-t border-dashed border-gray-200">
                         <button type="button" onclick="overrideStatus('${emp.id}', 'Absent')" class="flex-1 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-600 py-1.5 rounded-lg text-[10px] font-bold transition border">Absent</button>
                         <button type="button" onclick="overrideStatus('${emp.id}', 'Late')" class="flex-1 bg-gray-50 hover:bg-orange-50 text-gray-600 hover:text-orange-600 py-1.5 rounded-lg text-[10px] font-bold transition border">Late</button>
                         <button type="button" onclick="openCorrectionModal('${emp.id}')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 py-1.5 rounded-lg text-[10px] font-bold transition border border-blue-200">
@@ -1225,8 +1247,9 @@
         // --- EMPLOYEE CRUD ---
         function toggleAddForm() {
             const form = document.getElementById('addEmployeeForm');
-            if (window.innerWidth < 768) {
+            if (window.innerWidth < 1024) {
                 form.classList.toggle('hidden');
+                if (!form.classList.contains('hidden')) form.scrollIntoView({ behavior: 'smooth' });
             } else {
                 form.classList.remove('hidden');
                 form.scrollIntoView({ behavior: 'smooth' });
@@ -1303,7 +1326,7 @@
             } else { 
                 alert(editId ? "Employee Updated Successfully!" : "Employee Saved Successfully!"); 
                 resetEmployeeForm();
-                if (window.innerWidth < 768) toggleAddForm();
+                if (window.innerWidth < 1024) toggleAddForm();
                 loadDashboard(); 
             }
         }
@@ -1627,7 +1650,7 @@
             if (el) el.innerText = `${count} / ${allEmployees.length} registered`;
         }
 
-        // --- ON-SCREEN REPORTS & LANDSCAPE TABLE RENDERING ---
+        // --- REPORTS ---
         let currentDailyReportData = [];
 
         async function generateDailyReport() {
@@ -1713,21 +1736,21 @@
 
                 return `
                 <tr class="hover:bg-gray-50 transition">
-                    <td class="p-3">
+                    <td class="p-2.5">
                         <div class="font-bold text-gray-800 text-xs">${row.emp.name}</div>
                         <div class="text-[10px] text-gray-400 font-mono">${row.emp.emp_code || '-'}</div>
                     </td>
-                    <td class="p-3 text-gray-600 font-medium">${row.emp.department || 'General'}</td>
-                    <td class="p-3">
+                    <td class="p-2.5 text-gray-600 font-medium">${row.emp.department || 'General'}</td>
+                    <td class="p-2.5">
                         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusColor}">${row.status}</span>
                     </td>
-                    <td class="p-3 font-mono text-[11px] text-gray-600">${s1In} &rarr; ${s1Out}</td>
-                    <td class="p-3 font-mono text-[11px] text-gray-600">${s2In} &rarr; ${s2Out}</td>
-                    <td class="p-3 text-right font-bold text-xs text-gray-800">
+                    <td class="p-2.5 font-mono text-[11px] text-gray-600">${s1In} &rarr; ${s1Out}</td>
+                    <td class="p-2.5 font-mono text-[11px] text-gray-600">${s2In} &rarr; ${s2Out}</td>
+                    <td class="p-2.5 text-right font-bold text-xs text-gray-800">
                         ${row.totalHours.toFixed(1)}h 
                         <span class="text-[10px] text-purple-600 block">${row.otHours > 0 ? '+' + row.otHours.toFixed(1) + 'h OT' : ''}</span>
                     </td>
-                    <td class="p-3 text-right font-bold text-xs text-blue-600">₹${row.estDailyPay.toFixed(0)}</td>
+                    <td class="p-2.5 text-right font-bold text-xs text-blue-600">₹${row.estDailyPay.toFixed(0)}</td>
                 </tr>`;
             }).join('');
         }
@@ -1784,25 +1807,25 @@
 
             tbody.innerHTML = rows.map(r => `
                 <tr class="hover:bg-gray-50 transition">
-                    <td class="p-3">
+                    <td class="p-2.5">
                         <div class="font-bold text-gray-800 text-xs">${r.emp.name}</div>
                         <div class="text-[10px] text-gray-400 font-mono">${r.emp.emp_code || '-'}</div>
                     </td>
-                    <td class="p-3 text-gray-600">${r.emp.department || 'General'}</td>
-                    <td class="p-3 font-mono text-[11px]">
+                    <td class="p-2.5 text-gray-600">${r.emp.department || 'General'}</td>
+                    <td class="p-2.5 font-mono text-[11px]">
                         <span class="text-green-600 font-bold">${r.presents}P</span> / 
                         <span class="text-red-500 font-bold">${30 - r.presents}A</span> / 
                         <span class="text-orange-500 font-bold">${r.lates}L</span>
                     </td>
-                    <td class="p-3 text-right font-bold text-xs text-gray-800">
+                    <td class="p-2.5 text-right font-bold text-xs text-gray-800">
                         ${r.totalMonthHrs.toFixed(1)}h 
                         <span class="block text-[10px] text-purple-600">(+${r.otHours.toFixed(1)} OT)</span>
                     </td>
-                    <td class="p-3 text-right text-xs">
+                    <td class="p-2.5 text-right text-xs">
                         <div class="font-medium">₹${r.basicSalary}</div>
                         <div class="text-[10px] text-purple-600">+₹${r.otSalary.toFixed(0)}</div>
                     </td>
-                    <td class="p-3 text-right font-bold text-blue-600 text-xs">₹${r.totalGross.toFixed(0)}</td>
+                    <td class="p-2.5 text-right font-bold text-blue-600 text-xs">₹${r.totalGross.toFixed(0)}</td>
                 </tr>
             `).join('');
         }
@@ -1912,7 +1935,7 @@
             }
         }
 
-        // --- SETTINGS CONFIGURATIONS ---
+        // --- GEOFENCING, CALENDAR, SALARY CONFIG ---
         function openLocationModal() {
             if(currentAdmin.geo_lat && currentAdmin.geo_lng) {
                 document.getElementById('locSavedView').classList.remove('hidden');
@@ -2010,9 +2033,7 @@
                     action,
                     details
                 }]);
-            } catch(e) {
-                console.warn("Audit log skipped (table not migrated):", e);
-            }
+            } catch(e) { }
         }
 
         async function exportAuditLogCSV() {
@@ -2060,17 +2081,13 @@
             const deskBadge = document.getElementById('deskQueueBadge');
 
             if (count > 0) {
-                badge.innerText = count;
-                badge.classList.remove('hidden');
-                deskBadge.innerText = count;
-                deskBadge.classList.remove('hidden');
+                if (badge) { badge.innerText = count; badge.classList.remove('hidden'); }
+                if (deskBadge) { deskBadge.innerText = count; deskBadge.classList.remove('hidden'); }
                 document.getElementById('headerSyncNotice').innerHTML = `<i class="fas fa-circle text-[7px] text-amber-400"></i> ${count} Offline`;
-                document.getElementById('desktopSyncNotice').innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span> ${count} Offline Pending`;
             } else {
-                badge.classList.add('hidden');
-                deskBadge.classList.add('hidden');
+                if (badge) badge.classList.add('hidden');
+                if (deskBadge) deskBadge.classList.add('hidden');
                 document.getElementById('headerSyncNotice').innerHTML = `<i class="fas fa-circle text-[7px] text-green-300"></i> Online Mode`;
-                document.getElementById('desktopSyncNotice').innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online Mode`;
             }
         }
 
@@ -2080,8 +2097,8 @@
 
             const syncIcon = document.getElementById('syncIcon');
             const deskSyncIcon = document.getElementById('deskSyncIcon');
-            syncIcon.classList.add('fa-spin');
-            deskSyncIcon.classList.add('fa-spin');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+            if (deskSyncIcon) deskSyncIcon.classList.add('fa-spin');
 
             let synced = 0;
             for (const item of queue) {
@@ -2093,8 +2110,8 @@
             }
 
             localStorage.removeItem('offline_punches');
-            syncIcon.classList.remove('fa-spin');
-            deskSyncIcon.classList.remove('fa-spin');
+            if (syncIcon) syncIcon.classList.remove('fa-spin');
+            if (deskSyncIcon) deskSyncIcon.classList.remove('fa-spin');
             checkOfflineQueue();
             alert(`Flushed and synced ${synced} queued punches successfully.`);
             loadDashboard();
