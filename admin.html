@@ -799,6 +799,39 @@
         const adminVideo = document.getElementById('adminVideo');
         const trainVideo = document.getElementById('trainVideo');
 
+        // --- TIME HELPER FUNCTIONS (PREVENT LOCAL/UTC MISMATCH) ---
+        function getTodayDateStr() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatTime(isoStr) { 
+            if (!isoStr) return '--:--';
+            const d = new Date(isoStr);
+            if (isNaN(d.getTime())) return '--:--';
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }); 
+        }
+
+        function toTimeString24(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            if (isNaN(d.getTime())) return '';
+            const hours = String(d.getHours()).padStart(2, '0');
+            const mins = String(d.getMinutes()).padStart(2, '0');
+            return `${hours}:${mins}`;
+        }
+
+        function localTimeToISO(dateStr, timeStr) {
+            if (!timeStr) return null;
+            const [hh, mm] = timeStr.split(':').map(Number);
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dt = new Date(y, m - 1, d, hh, mm, 0, 0);
+            return dt.toISOString();
+        }
+
         // --- SESSION INITIALIZATION ---
         async function checkSession() {
             const savedAdminId = localStorage.getItem('attendance_admin_session');
@@ -831,7 +864,7 @@
             document.getElementById('mainAppView').classList.remove('hidden');
             document.getElementById('mainAppView').classList.add('flex');
             
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getTodayDateStr();
             document.getElementById('attendanceDateLabel').innerText = todayStr;
             document.getElementById('desktopDateIndicator').innerText = todayStr;
             document.getElementById('dailyReportDate').value = todayStr;
@@ -973,8 +1006,6 @@
         }
 
         // --- DASHBOARD LOGIC ---
-        function formatTime(isoStr) { return isoStr ? new Date(isoStr).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'; }
-        
         function calculateLate(empTiming, firstPunchInISO) {
             if(!empTiming || !firstPunchInISO) return false;
             
@@ -989,10 +1020,10 @@
                 const [expHour, expMin] = parts[0].split(':').map(Number);
                 const [endHour, endMin] = parts[1].split(':').map(Number);
                 
-                const expectedStart = new Date(firstPunchInISO);
+                const expectedStart = new Date(actualTime);
                 expectedStart.setHours(expHour, expMin, 0, 0);
                 
-                const expectedEnd = new Date(firstPunchInISO);
+                const expectedEnd = new Date(actualTime);
                 expectedEnd.setHours(endHour, endMin, 0, 0);
                 if (endHour < expHour) expectedEnd.setDate(expectedEnd.getDate() + 1);
 
@@ -1007,7 +1038,7 @@
 
         async function loadDashboard() {
             try {
-                const today = new Date().toISOString().split('T')[0];
+                const today = getTodayDateStr();
                 
                 const { data: employees, error: empErr } = await supabaseClient
                     .from('employees')
@@ -1063,7 +1094,7 @@
                         isHalfDay,
                         onLeave,
                         totalHrs, 
-                        otHours,
+                        otHours, 
                         punches, 
                         recordId: record?.id,
                         otApproved: record?.ot_approved || false
@@ -1161,7 +1192,7 @@
                 const displayShift = emp.work_timing ? emp.work_timing.replace(',', ' & ') : 'Not Set';
                 
                 let punchHTML = '';
-                if(emp.punches.length === 0) {
+                if(!emp.punches || emp.punches.length === 0) {
                     punchHTML = `
                     <div class="flex justify-between bg-gray-50 p-2 rounded-lg border items-center">
                         <div class="text-xs"><span class="text-gray-400 font-bold uppercase block text-[9px]">IN Time</span><span class="text-gray-400 font-bold">--:--</span></div>
@@ -1169,8 +1200,8 @@
                     </div>`;
                 } else {
                     punchHTML = emp.punches.map((p, idx) => {
-                        const inT = p.in ? formatTime(p.in) : '--:--';
-                        const outT = p.out ? formatTime(p.out) : '--:--';
+                        const inT = formatTime(p.in);
+                        const outT = formatTime(p.out);
                         return `
                         <div class="flex justify-between bg-gray-50 p-2 rounded-lg border items-center mb-1">
                             <div class="text-xs"><span class="text-gray-400 font-bold uppercase block text-[9px]">IN Time (Shift ${idx+1})</span><span class="text-green-600 font-bold">${inT}</span></div>
@@ -1225,7 +1256,7 @@
         }
 
         async function overrideStatus(empId, statusStr) {
-            const dateOnly = new Date().toISOString().split('T')[0];
+            const dateOnly = getTodayDateStr();
             const empData = allEmployees.find(e => e.id === empId);
             
             if(empData.recordId) {
@@ -1397,7 +1428,7 @@
             }
         }
 
-        // --- ATTENDANCE CORRECTION ---
+        // --- ATTENDANCE CORRECTION (FIXED TIMING OFFSET) ---
         function openCorrectionModal(empId) {
             const emp = allEmployees.find(e => e.id === empId);
             if (!emp) return;
@@ -1409,10 +1440,10 @@
             document.getElementById('correctApproveOt').checked = emp.otApproved;
             document.getElementById('correctNote').value = '';
 
-            document.getElementById('correctS1In').value = emp.punches[0]?.in ? new Date(emp.punches[0].in).toTimeString().substring(0,5) : '';
-            document.getElementById('correctS1Out').value = emp.punches[0]?.out ? new Date(emp.punches[0].out).toTimeString().substring(0,5) : '';
-            document.getElementById('correctS2In').value = emp.punches[1]?.in ? new Date(emp.punches[1].in).toTimeString().substring(0,5) : '';
-            document.getElementById('correctS2Out').value = emp.punches[1]?.out ? new Date(emp.punches[1].out).toTimeString().substring(0,5) : '';
+            document.getElementById('correctS1In').value = emp.punches && emp.punches[0]?.in ? toTimeString24(emp.punches[0].in) : '';
+            document.getElementById('correctS1Out').value = emp.punches && emp.punches[0]?.out ? toTimeString24(emp.punches[0].out) : '';
+            document.getElementById('correctS2In').value = emp.punches && emp.punches[1]?.in ? toTimeString24(emp.punches[1].in) : '';
+            document.getElementById('correctS2Out').value = emp.punches && emp.punches[1]?.out ? toTimeString24(emp.punches[1].out) : '';
 
             toggleModal('punchCorrectionModal');
         }
@@ -1423,7 +1454,7 @@
             const status = document.getElementById('correctStatus').value;
             const approveOt = document.getElementById('correctApproveOt').checked;
             const note = document.getElementById('correctNote').value;
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getTodayDateStr();
 
             const s1In = document.getElementById('correctS1In').value;
             const s1Out = document.getElementById('correctS1Out').value;
@@ -1434,16 +1465,40 @@
             let totalHours = 0;
 
             if (s1In) {
-                const inISO = `${todayStr}T${s1In}:00.000Z`;
-                const outISO = s1Out ? `${todayStr}T${s1Out}:00.000Z` : null;
+                const inISO = localTimeToISO(todayStr, s1In);
+                let outISO = null;
+                if (s1Out) {
+                    // Handle overnight punch where end time is earlier than start time
+                    if (s1Out < s1In) {
+                        const [y, m, d] = todayStr.split('-').map(Number);
+                        const nextDay = new Date(y, m - 1, d + 1);
+                        const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+                        outISO = localTimeToISO(nextDayStr, s1Out);
+                    } else {
+                        outISO = localTimeToISO(todayStr, s1Out);
+                    }
+                    const dur = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 3600000;
+                    if (dur > 0) totalHours += dur;
+                }
                 punches.push({ in: inISO, out: outISO });
-                if (outISO) totalHours += (new Date(outISO) - new Date(inISO)) / 3600000;
             }
+
             if (s2In) {
-                const inISO = `${todayStr}T${s2In}:00.000Z`;
-                const outISO = s2Out ? `${todayStr}T${s2Out}:00.000Z` : null;
+                const inISO = localTimeToISO(todayStr, s2In);
+                let outISO = null;
+                if (s2Out) {
+                    if (s2Out < s2In) {
+                        const [y, m, d] = todayStr.split('-').map(Number);
+                        const nextDay = new Date(y, m - 1, d + 1);
+                        const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
+                        outISO = localTimeToISO(nextDayStr, s2Out);
+                    } else {
+                        outISO = localTimeToISO(todayStr, s2Out);
+                    }
+                    const dur = (new Date(outISO).getTime() - new Date(inISO).getTime()) / 3600000;
+                    if (dur > 0) totalHours += dur;
+                }
                 punches.push({ in: inISO, out: outISO });
-                if (outISO) totalHours += (new Date(outISO) - new Date(inISO)) / 3600000;
             }
 
             const payload = {
@@ -1557,7 +1612,7 @@
 
         async function executePunchTransaction(emp, type) {
             const now = new Date().toISOString();
-            const dateOnly = now.split('T')[0];
+            const dateOnly = getTodayDateStr();
             
             if (!navigator.onLine) {
                 queueOfflinePunch(emp.id, type, now);
@@ -1755,6 +1810,7 @@
             }).join('');
         }
 
+        // --- MONTHLY SUMMARY (FIXED RANGE QUERY TO PREVENT LIKE/DATE TYPE FAILS) ---
         async function generateMonthlyReport() {
             const monthStr = document.getElementById('monthlyReportPicker').value;
             if (!monthStr) return;
@@ -1762,13 +1818,19 @@
             const tbody = document.getElementById('monthlyReportTableBody');
             tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i> Aggregating payroll for ${monthStr}...</td></tr>`;
 
+            const startDate = `${monthStr}-01`;
+            const endDate = `${monthStr}-31`;
+
+            // Using gte and lte prevents Postgres operator type mismatches between TEXT and DATE columns
             const { data: attendanceList, error } = await supabaseClient
                 .from('attendance')
                 .select('*')
-                .like('date', `${monthStr}-%`);
+                .gte('date', startDate)
+                .lte('date', endDate);
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-red-500">Failed to aggregate monthly data.</td></tr>`;
+                console.error("Monthly aggregate error:", error);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-red-500">Failed to aggregate monthly data: ${error.message}</td></tr>`;
                 return;
             }
 
@@ -1778,8 +1840,8 @@
             let totalPayrollAgg = 0;
 
             const rows = allEmployees.map(emp => {
-                const records = attendanceList.filter(a => a.employee_id === emp.id);
-                const presents = records.filter(r => r.status === 'Present' || r.status === 'Late' || r.punches?.length > 0).length;
+                const records = (attendanceList || []).filter(a => a.employee_id === emp.id);
+                const presents = records.filter(r => r.status === 'Present' || r.status === 'Late' || (r.punches && r.punches.length > 0)).length;
                 const lates = records.filter(r => r.status === 'Late').length;
                 const totalMonthHrs = records.reduce((acc, r) => acc + (Number(r.total_hours) || 0), 0);
                 
@@ -1803,7 +1865,12 @@
 
             document.getElementById('monthlyKpiPresents').innerText = totalPresentAgg;
             document.getElementById('monthlyKpiOtHours').innerText = totalOtAgg.toFixed(1) + 'h';
-            document.getElementById('monthlyKpiPayroll').innerText = `₹${totalPayrollAgg.toLocaleString()}`;
+            document.getElementById('monthlyKpiPayroll').innerText = `₹${Math.round(totalPayrollAgg).toLocaleString('en-IN')}`;
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-gray-400">No employee data found.</td></tr>`;
+                return;
+            }
 
             tbody.innerHTML = rows.map(r => `
                 <tr class="hover:bg-gray-50 transition">
@@ -1814,7 +1881,7 @@
                     <td class="p-2.5 text-gray-600">${r.emp.department || 'General'}</td>
                     <td class="p-2.5 font-mono text-[11px]">
                         <span class="text-green-600 font-bold">${r.presents}P</span> / 
-                        <span class="text-red-500 font-bold">${30 - r.presents}A</span> / 
+                        <span class="text-red-500 font-bold">${Math.max(0, 30 - r.presents)}A</span> / 
                         <span class="text-orange-500 font-bold">${r.lates}L</span>
                     </td>
                     <td class="p-2.5 text-right font-bold text-xs text-gray-800">
@@ -1845,7 +1912,7 @@
         function openBulkModal() { toggleModal('bulkModal'); }
 
         async function bulkMarkAbsent() {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getTodayDateStr();
             const missing = allEmployees.filter(e => e.status === 'missing');
             if (missing.length === 0) return alert("No employees are marked missing today.");
 
@@ -1871,7 +1938,6 @@
         }
 
         async function bulkApproveOt() {
-            const today = new Date().toISOString().split('T')[0];
             const eligible = allEmployees.filter(e => e.otHours > 0 && e.recordId);
             if (eligible.length === 0) return alert("No employees have eligible Overtime hours today.");
 
@@ -2061,7 +2127,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Attendance_Backup_${currentAdmin.firm_name || 'Admin'}_${new Date().toISOString().split('T')[0]}.json`;
+                a.download = `Attendance_Backup_${currentAdmin.firm_name || 'Admin'}_${getTodayDateStr()}.json`;
                 a.click();
             } catch(e) { alert("Backup error: " + e.message); }
         }
@@ -2161,15 +2227,20 @@
             const monthVal = document.getElementById('reportMonth').value || document.getElementById('monthlyReportPicker').value; 
             if (!monthVal) return alert("Please select a month.");
 
+            const startDate = `${monthVal}-01`;
+            const endDate = `${monthVal}-31`;
+
             const { data: attendanceList, error } = await supabaseClient.from('attendance')
-                .select('*').like('date', `${monthVal}-%`);
+                .select('*')
+                .gte('date', startDate)
+                .lte('date', endDate);
                 
             if (error) return alert("Error fetching monthly data: " + error.message);
 
             let csvContent = "Name,EMP Code,Department,Total Days Present,Total Hours,Basic Salary,Overtime Salary,Total Estimated Salary\n";
 
             allEmployees.forEach(e => {
-                const empAtt = attendanceList.filter(a => a.employee_id === e.id && (a.status === 'Present' || a.status === 'Late' || a.punches?.length > 0));
+                const empAtt = (attendanceList || []).filter(a => a.employee_id === e.id && (a.status === 'Present' || a.status === 'Late' || (a.punches && a.punches.length > 0)));
                 let totalMonthHrs = 0;
                 let totalOTHours = 0;
                 
