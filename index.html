@@ -35,6 +35,12 @@
                 display: flex !important;
             }
         }
+        
+        /* Modal Animation */
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: all 0.2s ease-out; }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: all 0.2s ease-in; }
     </style>
 </head>
 <body class="bg-gray-200 flex justify-center items-center min-h-[100dvh] p-0 lg:p-6 transition-all select-none">
@@ -42,7 +48,7 @@
     <!-- RESPONSIVE DUAL-ENGINE PORTAL CARD -->
     <div class="portal-container w-full bg-white shadow-2xl flex overflow-hidden relative transition-all duration-200">
         
-        <!-- DESKTOP LEFT BRANDING HERO (Strictly hidden on phones) -->
+        <!-- DESKTOP LEFT BRANDING HERO -->
         <div class="desktop-banner w-1/2 bg-slate-900 text-white p-10 flex-col justify-between flex-shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
@@ -77,8 +83,8 @@
             </div>
         </div>
 
-        <!-- PORTAL SELECTOR (Full width on mobile, right panel on desktop) -->
-        <div class="w-full lg:w-1/2 p-6 lg:p-12 flex flex-col justify-center">
+        <!-- PORTAL SELECTOR -->
+        <div class="w-full lg:w-1/2 p-6 lg:p-12 flex flex-col justify-center relative">
             
             <div class="text-center mb-8">
                 <div class="lg:hidden w-14 h-14 mx-auto rounded-2xl bg-blue-600 flex items-center justify-center text-white text-2xl shadow-lg mb-4">
@@ -103,27 +109,170 @@
                     <i class="fas fa-chevron-right text-xs text-slate-500 group-hover:text-white transition"></i>
                 </a>
 
-                <!-- User Portal Link -->
-                <a href="user.html" class="group flex items-center justify-between p-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm lg:text-base shadow-md transition active:scale-95">
+                <!-- Employee Login / Punch Trigger -->
+                <button onclick="openPunchModal()" class="w-full group flex items-center justify-between p-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm lg:text-base shadow-md transition active:scale-95">
                     <div class="flex items-center gap-3.5">
                         <div class="w-10 h-10 rounded-lg bg-green-700 group-hover:bg-green-800 flex items-center justify-center text-white transition">
                             <i class="fas fa-user-check text-lg"></i>
                         </div>
                         <div class="text-left">
-                            <span class="block leading-tight">Employee Login</span>
-                            <span class="text-[10px] text-green-100 font-normal">Self-punch & personal logs</span>
+                            <span class="block leading-tight">Employee Login / Punch</span>
+                            <span class="text-[10px] text-green-100 font-normal">Self-punch & selfie capture</span>
                         </div>
                     </div>
                     <i class="fas fa-chevron-right text-xs text-green-200 group-hover:text-white transition"></i>
-                </a>
+                </button>
             </div>
 
             <p class="text-center text-[10px] text-gray-400 mt-8">
                 Authorized Personnel Only &bull; All sessions monitored
             </p>
         </div>
-
     </div>
 
+    <!-- PUNCH MODAL OVERLAY -->
+    <div id="punchModalOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex-col justify-center items-center z-50 p-4 transition-opacity duration-200 opacity-0">
+        <div id="punchModal" class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 transition-transform duration-200">
+            
+            <!-- Modal Header -->
+            <div class="bg-slate-900 p-4 flex justify-between items-center text-white">
+                <h3 class="font-bold"><i class="fas fa-clock mr-2 text-blue-400"></i> Employee Punch</h3>
+                <button onclick="closePunchModal()" class="text-slate-400 hover:text-white transition"><i class="fas fa-times text-lg"></i></button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-6">
+                <!-- Standard Face Recognition Button -->
+                <button class="w-full py-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-100 transition active:scale-95">
+                    <i class="fas fa-expand"></i> Auto Face Recognition
+                </button>
+
+                <!-- Divider -->
+                <div class="flex items-center text-xs text-gray-400 uppercase tracking-wider font-bold">
+                    <div class="flex-1 border-t border-gray-200"></div>
+                    <span class="px-3">OR FALLBACK</span>
+                    <div class="flex-1 border-t border-gray-200"></div>
+                </div>
+
+                <!-- Selfie Section -->
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <p class="text-sm font-semibold text-gray-700">Face Not Recognized?</p>
+                        <p class="text-xs text-gray-500 mb-3">Take a live selfie to punch in/out</p>
+                    </div>
+
+                    <!-- Camera Viewport (Hidden initially) -->
+                    <div id="cameraContainer" class="hidden relative w-full aspect-[3/4] bg-black rounded-xl overflow-hidden border-2 border-slate-200">
+                        <video id="webcam" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="canvas" class="hidden"></canvas>
+                        <!-- Capture UI Overlay -->
+                        <div class="absolute bottom-4 left-0 w-full flex justify-center gap-4 px-4">
+                            <button onclick="captureAndPunch('IN')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-bold shadow-lg transition active:scale-95">
+                                <i class="fas fa-sign-in-alt mr-1"></i> Punch IN
+                            </button>
+                            <button onclick="captureAndPunch('OUT')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold shadow-lg transition active:scale-95">
+                                <i class="fas fa-sign-out-alt mr-1"></i> Punch OUT
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Start Camera Button -->
+                    <button id="startCamBtn" onclick="startCamera()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-700 transition shadow-md active:scale-95">
+                        <i class="fas fa-camera"></i> Open Camera
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let videoStream = null;
+
+        // Modal Controls
+        function openPunchModal() {
+            const overlay = document.getElementById('punchModalOverlay');
+            const modal = document.getElementById('punchModal');
+            overlay.classList.remove('hidden');
+            // Slight delay to allow display:block to apply before animating opacity
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                overlay.classList.add('opacity-100');
+                modal.classList.remove('scale-95');
+                modal.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closePunchModal() {
+            const overlay = document.getElementById('punchModalOverlay');
+            const modal = document.getElementById('punchModal');
+            
+            overlay.classList.remove('opacity-100');
+            overlay.classList.add('opacity-0');
+            modal.classList.remove('scale-100');
+            modal.classList.add('scale-95');
+            
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                stopCamera();
+            }, 200);
+        }
+
+        // Camera Controls
+        async function startCamera() {
+            const video = document.getElementById('webcam');
+            const container = document.getElementById('cameraContainer');
+            const startBtn = document.getElementById('startCamBtn');
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" } // Front camera on mobile
+                });
+                video.srcObject = videoStream;
+                
+                // Toggle UI
+                startBtn.classList.add('hidden');
+                container.classList.remove('hidden');
+            } catch (err) {
+                alert("Camera access denied or unavailable. Please check permissions.");
+                console.error(err);
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            document.getElementById('cameraContainer').classList.add('hidden');
+            document.getElementById('startCamBtn').classList.remove('hidden');
+        }
+
+        // Capture & Simulated Upload
+        function captureAndPunch(type) {
+            const video = document.getElementById('webcam');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+
+            // Set canvas size to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw image to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Get base64 string of image
+            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+            // ==========================================
+            // BACKEND LOGIC PLACEMENT:
+            // Here you will send 'base64Image', 'type' (IN/OUT), 
+            // and the Employee ID to your backend.
+            // ==========================================
+            
+            alert(`✅ Photo captured successfully!\nPunch ${type} recorded. Image ready for GitHub upload.`);
+            
+            closePunchModal();
+        }
+    </script>
 </body>
 </html>
