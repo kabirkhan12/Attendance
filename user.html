@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>User</title>
+    <title>User - Attendance Portal</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-gray-100 flex justify-center h-screen">
+<body class="bg-gray-100 flex justify-center h-screen select-none">
     <div class="w-full max-w-md bg-white h-full shadow-lg flex flex-col relative overflow-hidden">
         
         <!-- LOGIN VIEW -->
@@ -29,13 +29,16 @@
         </div>
 
         <!-- APP VIEW -->
-        <div id="appView" class="hidden flex-col h-full w-full bg-gray-50">
-            <div class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-10">
-                <div class="flex items-center gap-2"><i class="fas fa-user-circle text-2xl"></i><span id="userNameHeader" class="font-bold">Welcome</span></div>
-                <button type="button" onclick="location.reload()"><i class="fas fa-sign-out-alt text-xl hover:text-red-300"></i></button>
+        <div id="appView" class="hidden flex-col h-full w-full bg-gray-50 overflow-y-auto pb-8">
+            <div class="bg-blue-600 p-4 text-white flex justify-between items-center shadow-md z-10 sticky top-0">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user-circle text-2xl"></i>
+                    <span id="userNameHeader" class="font-bold truncate max-w-[200px]">Welcome</span>
+                </div>
+                <button type="button" onclick="location.reload()" class="p-1"><i class="fas fa-sign-out-alt text-xl hover:text-red-300"></i></button>
             </div>
 
-            <div class="h-72 bg-black relative flex items-center justify-center overflow-hidden m-4 rounded-2xl shadow-inner border-4 border-gray-200">
+            <div class="h-72 bg-black relative flex items-center justify-center overflow-hidden m-4 rounded-2xl shadow-inner border-4 border-gray-200 flex-shrink-0">
                 <video id="video" autoplay muted playsinline class="object-cover w-full h-full transform scale-x-[-1]"></video>
                 <div class="absolute inset-0 border-2 border-dashed border-white opacity-40 m-8 rounded-full pointer-events-none flex items-center justify-center">
                     <div class="w-full h-full bg-black bg-opacity-20 rounded-full"></div>
@@ -49,17 +52,49 @@
 
             <div class="flex-grow flex flex-col justify-start px-6">
                 <!-- Registration Controls -->
-                <div id="registerControls" class="hidden flex-col items-center">
-                    <button type="button" onclick="registerFace()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition flex justify-center items-center gap-2"><i class="fas fa-camera"></i> REGISTER MY FACE</button>
+                <div id="registerControls" class="hidden flex-col items-center mb-4">
+                    <button type="button" onclick="registerFace()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg active:scale-95 transition flex justify-center items-center gap-2">
+                        <i class="fas fa-camera"></i> REGISTER MY FACE
+                    </button>
                 </div>
 
                 <!-- Punch Controls -->
                 <div id="punchControls" class="hidden flex-col gap-4">
+                    
+                    <!-- Standard AI Punch -->
                     <div class="grid grid-cols-2 gap-4">
-                        <button type="button" onclick="enforceGeofenceThenPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1"><i class="fas fa-sign-in-alt text-2xl"></i>PUNCH IN</button>
-                        <button type="button" onclick="enforceGeofenceThenPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1"><i class="fas fa-sign-out-alt text-2xl"></i>PUNCH OUT</button>
+                        <button type="button" onclick="enforceGeofenceThenPunch('in', false)" class="bg-green-500 hover:bg-green-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1">
+                            <i class="fas fa-sign-in-alt text-2xl"></i>PUNCH IN
+                        </button>
+                        <button type="button" onclick="enforceGeofenceThenPunch('out', false)" class="bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-2xl font-bold text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center justify-center gap-1">
+                            <i class="fas fa-sign-out-alt text-2xl"></i>PUNCH OUT
+                        </button>
                     </div>
-                    <p id="punchStatusMsg" class="text-center text-sm font-medium text-gray-500 mt-2">Position face in frame and tap to punch.</p>
+                    <p id="punchStatusMsg" class="text-center text-sm font-medium text-gray-500 mt-1 mb-2">Position face in frame and tap to punch.</p>
+
+                    <!-- FALLBACK: SELFIE PUNCH -->
+                    <div class="mt-2 flex items-center text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                        <div class="flex-1 border-t border-gray-300"></div>
+                        <span class="px-3">Fallback: AI Failed?</span>
+                        <div class="flex-1 border-t border-gray-300"></div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-3">
+                        <p class="text-[11px] text-gray-500 text-center leading-tight">If the camera isn't recognizing you, take a live selfie below to record your punch manually.</p>
+                        
+                        <div class="grid grid-cols-2 gap-3 mt-1">
+                            <button type="button" onclick="enforceGeofenceThenPunch('in', true)" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs shadow transition active:scale-95 flex flex-col items-center justify-center gap-1">
+                                <i class="fas fa-camera text-base"></i> Selfie IN
+                            </button>
+                            <button type="button" onclick="enforceGeofenceThenPunch('out', true)" class="bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-bold text-xs shadow transition active:scale-95 flex flex-col items-center justify-center gap-1">
+                                <i class="fas fa-camera text-base"></i> Selfie OUT
+                            </button>
+                        </div>
+                        
+                        <!-- Hidden canvas for capturing the frame -->
+                        <canvas id="fallbackCanvas" class="hidden"></canvas>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -110,13 +145,17 @@
         async function loadModels() {
             statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading AI...';
             try {
+                const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
                 await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri('./models'),
-                    faceapi.nets.faceLandmark68Net.loadFromUri('./models'),
-                    faceapi.nets.faceRecognitionNet.loadFromUri('./models')
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
                 ]);
                 startVideo();
-            } catch (err) { statusText.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Error loading models.'; }
+            } catch (err) { 
+                statusText.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Error loading models.'; 
+                console.error(err);
+            }
         }
 
         async function startVideo() {
@@ -124,15 +163,22 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 video.srcObject = stream;
                 statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
-            } catch (err) { statusText.innerHTML = '<i class="fas fa-video-slash mr-2 text-red-500"></i>Access Denied!'; }
+            } catch (err) { 
+                statusText.innerHTML = '<i class="fas fa-video-slash mr-2 text-red-500"></i>Access Denied!'; 
+            }
         }
 
         async function registerFace() {
+            statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registering...';
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-            if (!detection) return alert("No face detected!");
+            if (!detection) {
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+                return alert("No face detected! Center your face in the oval.");
+            }
             const descString = JSON.stringify(Array.from(detection.descriptor));
             await supabaseClient.from('employees').update({ face_descriptor: descString }).eq('id', currentUser.id);
-            alert("Face Registered!"); location.reload();
+            alert("Face Registered Successfully!"); 
+            location.reload();
         }
 
         function getDistanceInMeters(lat1, lon1, lat2, lon2) {
@@ -143,9 +189,11 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
-        async function enforceGeofenceThenPunch(type) {
+        // Wrapper function to check Geofence before executing normal AI punch OR fallback selfie punch
+        async function enforceGeofenceThenPunch(type, isFallback = false) {
             if(adminGeofence && adminGeofence.geo_lat && adminGeofence.geo_lng && adminGeofence.geo_radius) {
                 statusText.innerHTML = '<i class="fas fa-satellite-dish fa-spin mr-2 text-blue-400"></i>Acquiring GPS Signal...';
+                
                 if (!navigator.geolocation) {
                     statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
                     return alert("Geolocation is not supported by your device. Cannot verify location.");
@@ -158,19 +206,29 @@
                             statusText.innerHTML = '<i class="fas fa-map-marker-alt mr-2 text-red-500"></i>Outside Boundary';
                             setTimeout(() => statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready', 3000);
                             return alert(`PUNCH BLOCKED: You are ${Math.round(distance)} meters away. You must be within ${adminGeofence.geo_radius} meters.`);
-                        } else recordAttendance(type);
+                        } else {
+                            // Inside geofence -> Proceed
+                            if (isFallback) processFallbackPunch(type);
+                            else processAIPunch(type);
+                        }
                     }, 
                     (err) => {
                         statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
                         alert("Please enable GPS/Location services on your phone to punch in.");
                     },
-                    { enableHighAccuracy: true, timeout: 5000 }
+                    { enableHighAccuracy: true, timeout: 10000 }
                 );
-            } else recordAttendance(type);
+            } else {
+                // No geofence configured -> Proceed
+                if (isFallback) processFallbackPunch(type);
+                else processAIPunch(type);
+            }
         }
 
-        async function recordAttendance(type) {
+        // --- 1. STANDARD AI PUNCH LOGIC ---
+        async function processAIPunch(type) {
             statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying Identity...';
+            
             const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
             if (!detection) {
                 statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
@@ -179,30 +237,94 @@
 
             const liveDesc = detection.descriptor;
             const savedDesc = new Float32Array(JSON.parse(currentUser.face_descriptor));
+            
             if (faceapi.euclideanDistance(liveDesc, savedDesc) > 0.6) {
                 statusText.innerHTML = '<i class="fas fa-times-circle mr-2 text-red-400"></i>Match Failed';
                 setTimeout(() => statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready', 2000);
                 return alert("Face does NOT match the registered user! Access Denied.");
             }
 
+            try {
+                await executePunchDB(type);
+                alert(`Punch ${type.toUpperCase()} Successful!`);
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+            } catch (err) {
+                alert("Punch failed: " + err.message);
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+            }
+        }
+
+        // --- 2. FALLBACK SELFIE PUNCH LOGIC ---
+        async function processFallbackPunch(type) {
+            statusText.innerHTML = '<i class="fas fa-camera mr-2"></i>Capturing Selfie...';
+            
+            // Capture image from video feed
+            const canvas = document.getElementById('fallbackCanvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Mirror the canvas to match the CSS scale-x-[-1] flip
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Base64 string for Backend/GitHub upload
+            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+            try {
+                await executePunchDB(type);
+                
+                // ==========================================
+                // BACKEND LOGIC: GitHub Upload
+                // Send 'base64Image', 'currentUser.id', and 'type' to your Backend API here
+                // ==========================================
+
+                alert(`✅ Fallback selfie captured!\nPunched ${type.toUpperCase()} successfully.\nImage ready for backend processing/GitHub.`);
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+            } catch (err) {
+                alert("Punch failed: " + err.message);
+                statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
+            }
+        }
+
+        // --- 3. DATABASE TRANSACTION LOGIC ---
+        // Separated out so both AI and Fallback can use it cleanly
+        async function executePunchDB(type) {
             const now = new Date().toISOString();
             const dateOnly = now.split('T')[0];
             const msgEl = document.getElementById('punchStatusMsg');
 
-            const { data: record } = await supabaseClient.from('attendance').select('*').eq('employee_id', currentUser.id).eq('date', dateOnly).single();
+            const { data: record } = await supabaseClient.from('attendance')
+                .select('*')
+                .eq('employee_id', currentUser.id)
+                .eq('date', dateOnly)
+                .single();
+                
             let punches = record ? record.punches || [] : [];
             let totalHrs = record ? record.total_hours || 0 : 0;
 
             if (type === 'in') {
-                if (punches.length > 0 && !punches[punches.length - 1].out) return alert("You are already Punched IN!");
+                if (punches.length > 0 && !punches[punches.length - 1].out) throw new Error("You are already Punched IN!");
+                
                 punches.push({ in: now });
-                if (!record) await supabaseClient.from('attendance').insert([{ employee_id: currentUser.id, date: dateOnly, punches: punches, total_hours: 0, status: 'Present' }]);
-                else await supabaseClient.from('attendance').update({ punches }).eq('id', record.id);
+                
+                if (!record) {
+                    await supabaseClient.from('attendance').insert([{ 
+                        employee_id: currentUser.id, 
+                        date: dateOnly, 
+                        punches: punches, 
+                        total_hours: 0, 
+                        status: 'Present' 
+                    }]);
+                } else {
+                    await supabaseClient.from('attendance').update({ punches }).eq('id', record.id);
+                }
                 
                 msgEl.innerHTML = `<span class="text-green-600 font-bold">Punched IN at ${new Date().toLocaleTimeString()}</span>`;
-                alert("Punch IN Successful!");
             } else {
-                if (punches.length === 0 || punches[punches.length - 1].out) return alert("You need to Punch IN first!");
+                if (punches.length === 0 || punches[punches.length - 1].out) throw new Error("You need to Punch IN first!");
+                
                 let lastPunch = punches[punches.length - 1];
                 lastPunch.out = now;
                 let sessionHrs = (new Date(lastPunch.out).getTime() - new Date(lastPunch.in).getTime()) / 3600000;
@@ -210,9 +332,7 @@
 
                 await supabaseClient.from('attendance').update({ punches: punches, total_hours: totalHrs }).eq('id', record.id);
                 msgEl.innerHTML = `<span class="text-orange-600 font-bold">Punched OUT at ${new Date().toLocaleTimeString()}<br>Hours today: ${totalHrs.toFixed(2)}</span>`;
-                alert("Punch OUT Successful!");
             }
-            statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
         }
     </script>
 </body>
