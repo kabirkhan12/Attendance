@@ -308,7 +308,7 @@
                 
                 if (dbError) throw dbError;
 
-                alert(`✅ Fallback selfie captured!\nPunched ${type.toUpperCase()} successfully.\nImage saved securely to Supabase.`);
+                alert(`✅ Fallback selfie captured!\nPunched ${type.toUpperCase()} successfully.`);
                 statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
             } catch (err) {
                 alert("Punch/Upload failed: " + err.message);
