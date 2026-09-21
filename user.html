@@ -273,17 +273,45 @@
             const base64Image = canvas.toDataURL('image/jpeg', 0.8);
 
             try {
+                // 1. Execute standard database punch transaction first
                 await executePunchDB(type);
                 
-                // ==========================================
-                // BACKEND LOGIC: GitHub Upload
-                // Send 'base64Image', 'currentUser.id', and 'type' to your Backend API here
-                // ==========================================
+                statusText.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving photo...';
 
-                alert(`✅ Fallback selfie captured!\nPunched ${type.toUpperCase()} successfully.\nImage ready for backend processing/GitHub.`);
+                // 2. Convert Base64 to a physical file (Blob)
+                const res = await fetch(base64Image);
+                const blob = await res.blob();
+                const dateOnly = new Date().toISOString().split('T')[0];
+                const fileName = `${dateOnly}_${currentUser.id}_${type}_${Date.now()}.jpg`;
+
+                // 3. Upload directly to Supabase Storage
+                const { data: uploadData, error: uploadError } = await supabaseClient
+                    .storage
+                    .from('attendance_selfies')
+                    .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+                if (uploadError) throw uploadError;
+
+                // 4. Get the public URL for the image
+                const { data: publicUrlData } = supabaseClient
+                    .storage
+                    .from('attendance_selfies')
+                    .getPublicUrl(fileName);
+
+                // 5. Save the link to your database table
+                const { error: dbError } = await supabaseClient.from('attendance_photos').insert([{
+                    employee_id: currentUser.id,
+                    punch_type: type,
+                    photo_url: publicUrlData.publicUrl,
+                    file_path: fileName
+                }]);
+                
+                if (dbError) throw dbError;
+
+                alert(`✅ Fallback selfie captured!\nPunched ${type.toUpperCase()} successfully.\nImage saved securely to Supabase.`);
                 statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
             } catch (err) {
-                alert("Punch failed: " + err.message);
+                alert("Punch/Upload failed: " + err.message);
                 statusText.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Camera Ready';
             }
         }
