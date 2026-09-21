@@ -837,20 +837,38 @@
 
         <!-- View Photo Modal -->
         <div id="photoModal" class="hidden absolute inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm flex flex-col items-center relative">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-lg flex flex-col items-center relative">
                 <button type="button" onclick="toggleModal('photoModal')" class="absolute top-3 right-3 text-gray-400 hover:text-gray-800"><i class="fas fa-times text-lg"></i></button>
-                <h3 class="font-bold text-base text-gray-800 mb-1"><i class="fas fa-image text-blue-500 mr-2"></i>Punch Photo</h3>
+                <h3 class="font-bold text-base text-gray-800 mb-1"><i class="fas fa-image text-blue-500 mr-2"></i>Punch Photos</h3>
                 <p id="photoEmpName" class="text-xs text-gray-500 mb-4 text-center">--</p>
                 
-                <div class="w-full bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center h-64 mb-4 border border-gray-200">
-                    <img id="punchPhotoImg" src="" alt="Punch Selfie" class="max-w-full max-h-full object-contain hidden">
-                    <div id="punchPhotoLoader" class="flex flex-col items-center hidden">
-                        <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-2"></i>
-                        <span class="text-xs text-gray-500">Loading photo...</span>
+                <div id="punchPhotoLoader" class="flex flex-col items-center w-full py-10 hidden">
+                    <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-2"></i>
+                    <span class="text-xs text-gray-500">Loading photos...</span>
+                </div>
+
+                <div id="photoContainer" class="w-full flex flex-col md:flex-row gap-4 mb-4 hidden">
+                    <!-- IN Photo -->
+                    <div class="flex-1 flex flex-col items-center">
+                        <p class="text-xs font-bold text-gray-600 mb-1">Punch IN</p>
+                        <div class="w-full bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center h-48 border border-gray-200 relative">
+                            <img id="punchPhotoInImg" src="" alt="Punch In Selfie" class="max-w-full max-h-full object-contain hidden">
+                            <div id="punchPhotoInError" class="flex flex-col items-center text-gray-400">
+                                <i class="fas fa-camera-slash text-2xl mb-1"></i>
+                                <span class="text-[10px]">No photo</span>
+                            </div>
+                        </div>
                     </div>
-                    <div id="punchPhotoError" class="flex flex-col items-center hidden text-gray-400">
-                        <i class="fas fa-camera-slash text-3xl mb-2"></i>
-                        <span class="text-xs">No fallback photo found for this date.</span>
+                    <!-- OUT Photo -->
+                    <div class="flex-1 flex flex-col items-center">
+                        <p class="text-xs font-bold text-gray-600 mb-1">Punch OUT</p>
+                        <div class="w-full bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center h-48 border border-gray-200 relative">
+                            <img id="punchPhotoOutImg" src="" alt="Punch Out Selfie" class="max-w-full max-h-full object-contain hidden">
+                            <div id="punchPhotoOutError" class="flex flex-col items-center text-gray-400">
+                                <i class="fas fa-camera-slash text-2xl mb-1"></i>
+                                <span class="text-[10px]">No photo</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1734,6 +1752,7 @@
             
             // Get base64 for backend upload
             const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
             const emp = allEmployees.find(e => e.id === empId);
 
             try {
@@ -1829,27 +1848,32 @@
             logAudit("Punch Recorded", { emp_id: emp.id, type, timestamp: now });
         }
 
-        // --- VIEW PHOTO LOGIC (TIMEZONE FIXED) ---
+        // --- VIEW PHOTO LOGIC (TIMEZONE FIXED & DUAL PHOTOS) ---
         async function viewPunchPhoto(empId, empName, dateStr) {
             document.getElementById('photoEmpName').innerText = `${empName} - ${dateStr}`;
-            const imgEl = document.getElementById('punchPhotoImg');
-            const loaderEl = document.getElementById('punchPhotoLoader');
-            const errorEl = document.getElementById('punchPhotoError');
             
-            imgEl.classList.add('hidden');
-            imgEl.src = "";
-            errorEl.classList.add('hidden');
+            const loaderEl = document.getElementById('punchPhotoLoader');
+            const containerEl = document.getElementById('photoContainer');
+            
+            const inImg = document.getElementById('punchPhotoInImg');
+            const inErr = document.getElementById('punchPhotoInError');
+            const outImg = document.getElementById('punchPhotoOutImg');
+            const outErr = document.getElementById('punchPhotoOutError');
+            
+            // Reset UI states
+            inImg.classList.add('hidden'); inImg.src = "";
+            outImg.classList.add('hidden'); outImg.src = "";
+            inErr.classList.remove('hidden');
+            outErr.classList.remove('hidden');
+            
+            containerEl.classList.add('hidden');
             loaderEl.classList.remove('hidden');
             toggleModal('photoModal');
 
             // --- BULLETPROOF TIMEZONE FIX (48-Hour Buffer) ---
-            // To completely prevent UTC timezone shifts from hiding records,
-            // we query a window from 1 day before to 1 day after the target date.
             const targetDate = new Date(dateStr);
-            
             const prevDay = new Date(targetDate);
             prevDay.setDate(prevDay.getDate() - 1);
-            
             const nextDay = new Date(targetDate);
             nextDay.setDate(nextDay.getDate() + 2);
 
@@ -1858,25 +1882,35 @@
 
             try {
                 const { data, error } = await supabaseClient.from('attendance_photos')
-                    .select('photo_url, created_at')
+                    .select('photo_url, punch_type, created_at')
                     .eq('employee_id', empId)
                     .gte('created_at', gteDateString) 
                     .lte('created_at', lteDateString)   
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+                    .order('created_at', { ascending: true }); // chronological
 
                 loaderEl.classList.add('hidden');
+                containerEl.classList.remove('hidden');
 
-                if (!error && data && data.length > 0 && data[0].photo_url) {
-                    imgEl.src = data[0].photo_url;
-                    imgEl.classList.remove('hidden');
-                } else {
-                    errorEl.classList.remove('hidden');
+                if (!error && data && data.length > 0) {
+                    // Extract the first IN photo and the last OUT photo for the day
+                    const inPhoto = data.find(p => p.punch_type === 'in');
+                    const outPhoto = [...data].reverse().find(p => p.punch_type === 'out');
+
+                    if (inPhoto && inPhoto.photo_url) {
+                        inImg.src = inPhoto.photo_url;
+                        inImg.classList.remove('hidden');
+                        inErr.classList.add('hidden');
+                    }
+                    if (outPhoto && outPhoto.photo_url) {
+                        outImg.src = outPhoto.photo_url;
+                        outImg.classList.remove('hidden');
+                        outErr.classList.add('hidden');
+                    }
                 }
             } catch (e) {
                 loaderEl.classList.add('hidden');
-                errorEl.innerHTML = `<i class="fas fa-exclamation-triangle text-3xl mb-2"></i><span class="text-xs">Error loading photo.</span>`;
-                errorEl.classList.remove('hidden');
+                containerEl.classList.remove('hidden');
+                console.error("Error loading photos:", e);
             }
         }
 
