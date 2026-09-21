@@ -473,10 +473,11 @@
                                         <th class="p-2.5">Shift 2</th>
                                         <th class="p-2.5 text-right">Work / OT</th>
                                         <th class="p-2.5 text-right">Est. Day ₹</th>
+                                        <th class="p-2.5 text-center">Photo</th>
                                     </tr>
                                 </thead>
                                 <tbody id="dailyReportTableBody" class="divide-y divide-gray-100 text-[11px]">
-                                    <tr><td colspan="7" class="text-center p-6 text-gray-400">Loading daily report...</td></tr>
+                                    <tr><td colspan="8" class="text-center p-6 text-gray-400">Loading daily report...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -831,6 +832,29 @@
                     <button type="button" onclick="toggleModal('holidayModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-xs">Close</button>
                     <button type="button" onclick="submitHolidayRecord()" class="flex-1 bg-red-500 text-white py-2 rounded font-bold text-xs">Apply Holiday</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- View Photo Modal -->
+        <div id="photoModal" class="hidden absolute inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm flex flex-col items-center relative">
+                <button type="button" onclick="toggleModal('photoModal')" class="absolute top-3 right-3 text-gray-400 hover:text-gray-800"><i class="fas fa-times text-lg"></i></button>
+                <h3 class="font-bold text-base text-gray-800 mb-1"><i class="fas fa-image text-blue-500 mr-2"></i>Punch Photo</h3>
+                <p id="photoEmpName" class="text-xs text-gray-500 mb-4 text-center">--</p>
+                
+                <div class="w-full bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center h-64 mb-4 border border-gray-200">
+                    <img id="punchPhotoImg" src="" alt="Punch Selfie" class="max-w-full max-h-full object-contain hidden">
+                    <div id="punchPhotoLoader" class="flex flex-col items-center hidden">
+                        <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-2"></i>
+                        <span class="text-xs text-gray-500">Loading photo...</span>
+                    </div>
+                    <div id="punchPhotoError" class="flex flex-col items-center hidden text-gray-400">
+                        <i class="fas fa-camera-slash text-3xl mb-2"></i>
+                        <span class="text-xs">No fallback photo found for this date.</span>
+                    </div>
+                </div>
+                
+                <button type="button" onclick="toggleModal('photoModal')" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded font-bold text-sm transition">Close</button>
             </div>
         </div>
 
@@ -1719,10 +1743,18 @@
                 
                 // ==========================================
                 // BACKEND LOGIC: GitHub Upload
-                // Pass base64Image, empId, and type to your backend here
+                // Send base64Image, empId, type to your Edge Function
+                const dateOnly = new Date().toISOString().split('T')[0];
+                const payload = { base64Image: base64Image, employeeId: empId, type: type, dateStr: dateOnly };
+                
+                const response = await fetch('https://cighgvyjwaagdhmiohlb.supabase.co/functions/v1/upload-selfie', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseKey}` },
+                    body: JSON.stringify(payload)
+                });
                 // ==========================================
 
-                alert(`✅ Fallback selfie captured!\n${emp.name} Punched ${type.toUpperCase()}.\nImage ready for backend processing/GitHub.`);
+                alert(`✅ Fallback selfie captured!\n${emp.name} Punched ${type.toUpperCase()}.\nImage successfully saved to database.`);
                 
                 // Reset select
                 document.getElementById('fallbackEmpSelect').value = "";
@@ -1774,6 +1806,48 @@
             }
 
             logAudit("Punch Recorded", { emp_id: emp.id, type, timestamp: now });
+        }
+
+        // --- VIEW PHOTO LOGIC ---
+        async function viewPunchPhoto(empId, empName, dateStr) {
+            document.getElementById('photoEmpName').innerText = `${empName} - ${dateStr}`;
+            const imgEl = document.getElementById('punchPhotoImg');
+            const loaderEl = document.getElementById('punchPhotoLoader');
+            const errorEl = document.getElementById('punchPhotoError');
+            
+            imgEl.classList.add('hidden');
+            imgEl.src = "";
+            errorEl.classList.add('hidden');
+            loaderEl.classList.remove('hidden');
+            toggleModal('photoModal');
+
+            // Format end date boundary for the query
+            const nextDay = new Date(dateStr);
+            nextDay.setDate(nextDay.getDate() + 1);
+            const nextDayStr = nextDay.toISOString().split('T')[0];
+
+            try {
+                const { data, error } = await supabaseClient.from('attendance_photos')
+                    .select('photo_url')
+                    .eq('employee_id', empId)
+                    .gte('created_at', dateStr)
+                    .lt('created_at', nextDayStr)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                loaderEl.classList.add('hidden');
+
+                if (data && data.length > 0 && data[0].photo_url) {
+                    imgEl.src = data[0].photo_url;
+                    imgEl.classList.remove('hidden');
+                } else {
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (e) {
+                loaderEl.classList.add('hidden');
+                errorEl.innerHTML = `<i class="fas fa-exclamation-triangle text-3xl mb-2"></i><span class="text-xs">Error loading photo.</span>`;
+                errorEl.classList.remove('hidden');
+            }
         }
 
         // --- FACE REGISTRATION ---
@@ -1835,11 +1909,11 @@
             if (!dateStr) return;
 
             const tbody = document.getElementById('dailyReportTableBody');
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i> Loading ${dateStr}...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i> Loading ${dateStr}...</td></tr>`;
 
             const { data: attendanceList, error } = await supabaseClient.from('attendance').select('*').eq('date', dateStr);
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-red-500">Error loading report</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-red-500">Error loading report</td></tr>`;
                 return;
             }
 
@@ -1893,6 +1967,7 @@
             const deptFilter = document.getElementById('dailyFilterDept').value;
             const statusFilter = document.getElementById('dailyFilterStatus').value;
             const tbody = document.getElementById('dailyReportTableBody');
+            const dateStr = document.getElementById('dailyReportDate').value;
 
             let filtered = currentDailyReportData.filter(row => {
                 const matchDept = deptFilter === 'All' || row.emp.department === deptFilter;
@@ -1901,7 +1976,7 @@
             });
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-gray-400 text-xs">No records found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-gray-400 text-xs">No records found.</td></tr>`;
                 return;
             }
 
@@ -1931,6 +2006,11 @@
                         <span class="text-[10px] text-purple-600 block">${row.otHours > 0 ? '+' + row.otHours.toFixed(1) + 'h OT' : ''}</span>
                     </td>
                     <td class="p-2.5 text-right font-bold text-xs text-blue-600">₹${row.estDailyPay.toFixed(0)}</td>
+                    <td class="p-2.5 text-center">
+                        <button type="button" onclick="viewPunchPhoto('${row.emp.id}', '${row.emp.name.replace(/'/g, "\\'")}', '${dateStr}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded-lg transition" title="View Fallback Selfie">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </td>
                 </tr>`;
             }).join('');
         }
