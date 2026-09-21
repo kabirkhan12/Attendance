@@ -340,13 +340,13 @@
                         </div>
                     </div>
                     
-                    <div class="flex-grow flex flex-col justify-start">
+                    <div class="flex-grow flex flex-col justify-start pb-6">
                         <p class="text-center text-xs lg:text-sm font-medium text-gray-500 mb-4">Position face inside oval frame. Kiosk location bypass active.</p>
                         <div class="grid grid-cols-2 gap-3 lg:gap-4">
-                            <button type="button" onclick="adminKioskPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-5 lg:py-6 rounded-2xl font-bold text-base lg:text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
+                            <button type="button" onclick="adminKioskPunch('in')" class="bg-green-500 hover:bg-green-600 text-white py-4 lg:py-6 rounded-2xl font-bold text-base lg:text-lg shadow-[0_4px_14px_0_rgba(34,197,94,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
                                 <i class="fas fa-sign-in-alt text-2xl lg:text-3xl mb-1"></i>PUNCH IN
                             </button>
-                            <button type="button" onclick="adminKioskPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-5 lg:py-6 rounded-2xl font-bold text-base lg:text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
+                            <button type="button" onclick="adminKioskPunch('out')" class="bg-orange-500 hover:bg-orange-600 text-white py-4 lg:py-6 rounded-2xl font-bold text-base lg:text-lg shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] active:scale-95 transition flex flex-col items-center gap-1">
                                 <i class="fas fa-sign-out-alt text-2xl lg:text-3xl mb-1"></i>PUNCH OUT
                             </button>
                         </div>
@@ -357,6 +357,33 @@
                                 <span class="text-[10px] lg:text-[11px] text-gray-400">Trained employee biometric models</span>
                             </div>
                             <span id="faceRegisteredCount" class="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-[11px]">0 registered</span>
+                        </div>
+
+                        <!-- FALLBACK: SELFIE PUNCH -->
+                        <div class="mt-6 flex items-center text-xs text-gray-400 uppercase tracking-wider font-bold">
+                            <div class="flex-1 border-t border-gray-200"></div>
+                            <span class="px-3">Fallback: Take Selfie</span>
+                            <div class="flex-1 border-t border-gray-200"></div>
+                        </div>
+
+                        <div class="mt-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-3">
+                            <p class="text-xs text-gray-500 text-center">If the AI fails, select the employee and take a manual selfie using the kiosk camera.</p>
+                            
+                            <select id="fallbackEmpSelect" class="p-3 border rounded-lg text-sm bg-gray-50 outline-none w-full border-gray-300">
+                                <option value="">-- Select Employee --</option>
+                            </select>
+                            
+                            <div class="grid grid-cols-2 gap-3 mt-2">
+                                <button type="button" onclick="fallbackSelfiePunch('in')" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm shadow transition active:scale-95 flex items-center justify-center gap-2">
+                                    <i class="fas fa-camera"></i> Selfie IN
+                                </button>
+                                <button type="button" onclick="fallbackSelfiePunch('out')" class="bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-bold text-sm shadow transition active:scale-95 flex items-center justify-center gap-2">
+                                    <i class="fas fa-camera"></i> Selfie OUT
+                                </button>
+                            </div>
+
+                            <!-- Hidden canvas for capturing the frame -->
+                            <canvas id="fallbackCanvas" class="hidden"></canvas>
                         </div>
                     </div>
                 </div>
@@ -1151,6 +1178,8 @@
                 filterList('all'); 
                 populateDepartmentDropdowns();
                 populateLeaveEmpDropdown();
+                populateHolidayEmpDropdown();
+                populateFallbackEmpDropdown(); // Update fallback dropdown
                 updateFaceCounter();
                 
             } catch (err) {
@@ -1653,6 +1682,57 @@
             }
         }
 
+        // --- FALLBACK SELFIE PUNCH ---
+        function populateFallbackEmpDropdown() {
+            const select = document.getElementById('fallbackEmpSelect');
+            if (!select) return;
+            select.innerHTML = '<option value="">-- Select Employee --</option>' + 
+                allEmployees.map(e => `<option value="${e.id}">${e.name} (${e.emp_code || 'EMP'})</option>`).join('');
+        }
+
+        async function fallbackSelfiePunch(type) {
+            const empId = document.getElementById('fallbackEmpSelect').value;
+            if (!empId) return alert("Please select an employee first.");
+            
+            const video = document.getElementById('adminVideo');
+            if (!video || !video.srcObject) return alert("Camera is not active. Please wait for the scanner to initialize.");
+
+            // Capture photo from video feed
+            const canvas = document.getElementById('fallbackCanvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Mirror the canvas to match the CSS scale-x-[-1] flip
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Get base64 for backend upload
+            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+
+            const emp = allEmployees.find(e => e.id === empId);
+
+            try {
+                // Execute standard database punch transaction
+                await executePunchTransaction(emp, type);
+                
+                // ==========================================
+                // BACKEND LOGIC: GitHub Upload
+                // Pass base64Image, empId, and type to your backend here
+                // ==========================================
+
+                alert(`✅ Fallback selfie captured!\n${emp.name} Punched ${type.toUpperCase()}.\nImage ready for backend processing/GitHub.`);
+                
+                // Reset select
+                document.getElementById('fallbackEmpSelect').value = "";
+                loadDashboard();
+            } catch (err) {
+                alert("Punch failed: " + err.message);
+            }
+        }
+
+        // --- CORE PUNCH TRANSACTION LOGIC ---
         async function executePunchTransaction(emp, type) {
             const now = new Date().toISOString();
             const dateOnly = getTodayDateStr();
@@ -2301,7 +2381,7 @@
         window.addEventListener('online', () => { checkOfflineQueue(); flushOfflineQueue(); });
         window.addEventListener('offline', () => { checkOfflineQueue(); });
 
-        // --- CSV EXPORTS (COMPLETELY SYNCHRONIZED WITH DISPLAYED DATA) ---
+        // --- CSV EXPORTS ---
         function downloadCsvBlob(csvContent, fileName) {
             const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
