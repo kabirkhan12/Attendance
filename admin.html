@@ -1821,18 +1821,26 @@
             loaderEl.classList.remove('hidden');
             toggleModal('photoModal');
 
-            // --- TIMEZONE FIX ---
-            // Parse dateStr natively (e.g. "2024-03-15") into exact local start and end bounds
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const startOfDayLocal = new Date(year, month - 1, day, 0, 0, 0);
-            const endOfDayLocal = new Date(year, month - 1, day, 23, 59, 59, 999);
+            // --- BULLETPROOF TIMEZONE FIX (48-Hour Buffer) ---
+            // To completely prevent UTC timezone shifts from hiding records,
+            // we query a window from 1 day before to 1 day after the target date.
+            const targetDate = new Date(dateStr);
+            
+            const prevDay = new Date(targetDate);
+            prevDay.setDate(prevDay.getDate() - 1);
+            
+            const nextDay = new Date(targetDate);
+            nextDay.setDate(nextDay.getDate() + 2);
+
+            const gteDateString = prevDay.toISOString().split('T')[0];
+            const lteDateString = nextDay.toISOString().split('T')[0];
 
             try {
                 const { data, error } = await supabaseClient.from('attendance_photos')
-                    .select('photo_url')
+                    .select('photo_url, created_at')
                     .eq('employee_id', empId)
-                    .gte('created_at', startOfDayLocal.toISOString()) // Exact UTC map of local 00:00:00
-                    .lte('created_at', endOfDayLocal.toISOString())   // Exact UTC map of local 23:59:59
+                    .gte('created_at', gteDateString) 
+                    .lte('created_at', lteDateString)   
                     .order('created_at', { ascending: false })
                     .limit(1);
 
@@ -2055,16 +2063,16 @@
                 
                 let otHours = 0;
                 records.forEach(r => {
-                    const h = Number(r.total_hours) || 0;
-                    if (h > standardHours) otHours += (h - standardHours);
+                    let dailyHrs = Number(r.total_hours) || 0;
+                    if (dailyHrs > standardHours) otHours += (dailyHrs - standardHours); 
                 });
 
-                const monthlyFixed = Number(emp.monthly_salary) || 0;
-                const perDaySalary = monthlyFixed > 0 ? (monthlyFixed / daysInMonth) : 0;
-                const earnedBasicSalary = perDaySalary * presents;
-                const otRate = Number(emp.overtime_rate) || 0;
+                const monthlyFixed = parseFloat(e.monthly_salary || 0);
+                const perDayRate = monthlyFixed > 0 ? (monthlyFixed / daysInMonth) : 0;
+                const earnedBaseSalary = perDayRate * presents;
+                const otRate = parseFloat(e.overtime_rate || 0);
                 const otSalary = otHours * otRate;
-                const totalGross = earnedBasicSalary + otSalary;
+                const totalGross = earnedBaseSalary + otSalary;
 
                 totalPresentAgg += presents;
                 totalOtAgg += otHours;
