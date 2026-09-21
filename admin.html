@@ -1808,7 +1808,7 @@
             logAudit("Punch Recorded", { emp_id: emp.id, type, timestamp: now });
         }
 
-        // --- VIEW PHOTO LOGIC ---
+        // --- VIEW PHOTO LOGIC (TIMEZONE FIXED) ---
         async function viewPunchPhoto(empId, empName, dateStr) {
             document.getElementById('photoEmpName').innerText = `${empName} - ${dateStr}`;
             const imgEl = document.getElementById('punchPhotoImg');
@@ -1821,23 +1821,24 @@
             loaderEl.classList.remove('hidden');
             toggleModal('photoModal');
 
-            // Format end date boundary for the query
-            const nextDay = new Date(dateStr);
-            nextDay.setDate(nextDay.getDate() + 1);
-            const nextDayStr = nextDay.toISOString().split('T')[0];
+            // --- TIMEZONE FIX ---
+            // Parse dateStr natively (e.g. "2024-03-15") into exact local start and end bounds
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const startOfDayLocal = new Date(year, month - 1, day, 0, 0, 0);
+            const endOfDayLocal = new Date(year, month - 1, day, 23, 59, 59, 999);
 
             try {
                 const { data, error } = await supabaseClient.from('attendance_photos')
                     .select('photo_url')
                     .eq('employee_id', empId)
-                    .gte('created_at', dateStr)
-                    .lt('created_at', nextDayStr)
+                    .gte('created_at', startOfDayLocal.toISOString()) // Exact UTC map of local 00:00:00
+                    .lte('created_at', endOfDayLocal.toISOString())   // Exact UTC map of local 23:59:59
                     .order('created_at', { ascending: false })
                     .limit(1);
 
                 loaderEl.classList.add('hidden');
 
-                if (data && data.length > 0 && data[0].photo_url) {
+                if (!error && data && data.length > 0 && data[0].photo_url) {
                     imgEl.src = data[0].photo_url;
                     imgEl.classList.remove('hidden');
                 } else {
