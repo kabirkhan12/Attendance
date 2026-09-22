@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Attendance Admin Dashboard</title>
+    
+    <!-- PWA / Mobile Shortcut Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Attendance Admin">
+    <link rel="apple-touch-icon" href="icon-192.png"> <!-- Replace with your logo -->
     <link rel="icon" href="data:,">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS v2 -->
@@ -15,6 +24,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <style>
         /* Custom scrollbar styling */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -160,7 +170,7 @@
                     <button type="button" onclick="openBulkModal()" class="flex items-center gap-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition px-3 py-1.5 rounded-lg border">
                         <i class="fas fa-tasks text-blue-600"></i> Bulk Ops
                     </button>
-                    <button type="button" onclick="toggleAddForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <button type="button" onclick="toggleModal('addEmployeeModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
                         <i class="fas fa-user-plus"></i> Add Employee
                     </button>
                 </div>
@@ -196,7 +206,6 @@
                         </button>
                     </div>
 
-                    <!-- Layout: Stack on Mobile, Side-by-side on Landscape/Desktop -->
                     <div class="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
                         
                         <!-- Roster Area -->
@@ -234,15 +243,14 @@
 
                             <!-- Mobile Add Employee Trigger -->
                             <div class="lg:hidden flex justify-center pb-4">
-                                <button type="button" onclick="toggleAddForm()" class="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2 text-xs">
+                                <button type="button" onclick="toggleModal('addEmployeeModal')" class="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2 text-xs">
                                     <i class="fas fa-user-plus"></i> Add Employee
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Side Column (Desktop Form & Stats) -->
+                        <!-- Side Column (Desktop Stats) -->
                         <div id="desktopSidePanel" class="w-full lg:w-96 flex flex-col gap-4">
-                            
                             <!-- Desktop Analytics Card -->
                             <div id="analyticsContainerDesktop" class="desktop-only flex-col bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                 <div class="flex justify-between items-center mb-3">
@@ -252,76 +260,6 @@
                                     <canvas id="todayRatioChartDesktop"></canvas>
                                 </div>
                             </div>
-
-                            <!-- Add / Edit Employee Form -->
-                            <div id="addEmployeeForm" class="hidden lg:block bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition">
-                                <div class="flex justify-between items-center border-b pb-2 mb-3">
-                                    <h3 id="formEmployeeTitle" class="font-bold text-gray-800 text-sm">New Employee Details</h3>
-                                    <button type="button" onclick="toggleAddForm()" class="lg:hidden text-gray-400 hover:text-gray-600 text-xs"><i class="fas fa-times"></i></button>
-                                </div>
-                                <input type="hidden" id="editEmpId" value="">
-                                
-                                <div class="space-y-2">
-                                    <input type="text" id="eName" placeholder="Full Name" class="w-full p-2.5 border rounded-lg text-xs bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
-                                    <input type="text" id="eCode" placeholder="EMP Code (e.g. EMP001)" class="w-full p-2.5 border rounded-lg text-xs bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
-                                    
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <input type="text" id="eLogin" placeholder="Login ID" class="p-2.5 border rounded-lg text-xs bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
-                                        <input type="password" id="ePass" placeholder="Password" class="p-2.5 border rounded-lg text-xs bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
-                                    </div>
-                                    
-                                    <select id="eDept" onchange="handleDeptChange()" class="w-full p-2.5 border rounded-lg text-xs bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
-                                        <option value="General">General</option>
-                                        <option value="Service">Service</option>
-                                        <option value="Engineer">Engineer</option>
-                                        <option value="CCO">CCO</option>
-                                        <option value="Manager">Manager</option>
-                                        <option value="Captain">Captain</option>
-                                        <option value="Head Chef">Head Chef</option>
-                                        <option value="Assistant Chef">Assistant Chef</option>
-                                        <option value="Kitchen Supervisor">Kitchen Supervisor</option>
-                                        <option value="Kitchen Helper">Kitchen Helper</option>
-                                        <option value="Dish Washer">Dish Washer</option>
-                                        <option value="Waiter">Waiter</option>
-                                        <option value="Other">Other (Specify)</option>
-                                    </select>
-                                    <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden w-full p-2.5 border rounded-lg text-xs bg-gray-50 outline-none">
-                                    
-                                    <select id="eTimingType" onchange="handleTimingChange()" class="w-full p-2.5 border rounded-lg text-xs bg-blue-50 font-bold text-blue-700 outline-none">
-                                        <option value="Single">Single Fixed Shift</option>
-                                        <option value="Dual">Dual Shift (Flexi)</option>
-                                    </select>
-
-                                    <div id="timingSingle" class="grid grid-cols-2 gap-2">
-                                        <div><label class="text-[10px] text-gray-500 font-bold block mb-1">IN Time</label><input type="time" id="eStart1" value="09:30" class="w-full p-2 border rounded text-xs bg-gray-50"></div>
-                                        <div><label class="text-[10px] text-gray-500 font-bold block mb-1">OUT Time</label><input type="time" id="eEnd1" value="19:00" class="w-full p-2 border rounded text-xs bg-gray-50"></div>
-                                    </div>
-
-                                    <div id="timingDual" class="hidden bg-gray-50 p-2.5 border rounded-lg">
-                                        <p class="text-[10px] font-bold text-gray-600 mb-1">Shift 1</p>
-                                        <div class="grid grid-cols-2 gap-2 mb-2">
-                                            <input type="time" id="eDStart1" value="11:00" class="w-full p-1.5 border rounded text-xs">
-                                            <input type="time" id="eDEnd1" value="16:00" class="w-full p-1.5 border rounded text-xs">
-                                        </div>
-                                        <p class="text-[10px] font-bold text-gray-600 mb-1 border-t pt-1">Shift 2</p>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <input type="time" id="eDStart2" value="19:00" class="w-full p-1.5 border rounded text-xs">
-                                            <input type="time" id="eDEnd2" value="00:00" class="w-full p-1.5 border rounded text-xs">
-                                        </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <div><label class="text-[10px] text-gray-500 font-bold block mb-1">Base Salary (₹)</label><input type="number" id="eSalary" placeholder="Base Salary" class="w-full p-2 border rounded text-xs bg-gray-50"></div>
-                                        <div><label class="text-[10px] text-gray-500 font-bold block mb-1">OT Rate (₹/hr)</label><input type="number" id="eRate" placeholder="OT Rate" class="w-full p-2 border rounded text-xs bg-gray-50"></div>
-                                    </div>
-                                </div>
-
-                                <div class="flex gap-2 mt-4">
-                                    <button type="button" onclick="resetEmployeeForm()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg font-bold text-xs transition">Reset</button>
-                                    <button type="button" id="btnSaveEmployee" onclick="saveEmployee()" class="flex-2 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg font-bold text-xs shadow transition">Save Employee</button>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 </div>
@@ -382,7 +320,6 @@
                                 </button>
                             </div>
 
-                            <!-- Hidden canvas for capturing the frame -->
                             <canvas id="fallbackCanvas" class="hidden"></canvas>
                         </div>
                     </div>
@@ -390,7 +327,6 @@
 
                 <!-- ================= TAB 3: REPORTS & PAYROLL ================= -->
                 <div id="tab-reports" class="hidden flex-col bg-white rounded-xl border border-gray-200 min-h-full overflow-hidden shadow-sm">
-                    
                     <!-- Sub-navigation tabs -->
                     <div class="flex border-b bg-gray-50 text-xs font-bold text-gray-600">
                         <button type="button" id="subtab-btn-daily" onclick="switchReportSubTab('daily')" class="flex-1 py-3 lg:py-3.5 border-b-2 border-blue-600 text-blue-600 bg-white transition">
@@ -416,7 +352,6 @@
                                     <i class="fas fa-print mr-1"></i> Print
                                 </button>
                             </div>
-
                             <div class="flex items-center gap-2">
                                 <select id="dailyFilterDept" onchange="renderDailyReportTable()" class="p-2 border rounded-lg text-xs bg-gray-50 flex-1 lg:min-w-[120px]">
                                     <option value="All">All Depts</option>
@@ -461,7 +396,6 @@
                             </div>
                         </div>
 
-                        <!-- Table -->
                         <div class="overflow-x-auto border rounded-xl flex-1 bg-white shadow-2xs">
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-gray-100 text-gray-600 border-b select-none">
@@ -550,7 +484,6 @@
                             <i class="fas fa-download text-gray-300"></i>
                         </button>
                     </div>
-
                 </div>
 
                 <!-- ================= TAB 4: SETTINGS ================= -->
@@ -573,20 +506,16 @@
                             <div class="flex items-center gap-4"><i class="fas fa-plane-departure text-amber-500 w-5"></i> Leave Management</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="openHolidayModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
-                            <div class="flex items-center gap-4"><i class="fas fa-gift text-red-500 w-5"></i> Holiday</div>
+                        <button type="button" onclick="openHolidayListModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
+                            <div class="flex items-center gap-4"><i class="fas fa-gift text-red-500 w-5"></i> Manage Holidays</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
                     </div>
 
-                    <div class="bg-gray-100 p-3 px-5 text-xs font-bold text-gray-600 uppercase tracking-wider mt-4">Security & Storage</div>
+                    <div class="bg-gray-100 p-3 px-5 text-xs font-bold text-gray-600 uppercase tracking-wider mt-4">Security</div>
                     <div class="flex flex-col w-full divide-y divide-gray-100">
                         <button type="button" onclick="toggleModal('changePasswordModal')" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
                             <div class="flex items-center gap-4"><i class="fas fa-lock text-gray-500 w-5"></i> Change Password</div>
-                            <i class="fas fa-chevron-right text-gray-300"></i>
-                        </button>
-                        <button type="button" onclick="backupSystemData()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
-                            <div class="flex items-center gap-4"><i class="fas fa-file-archive text-teal-600 w-5"></i> Backup System JSON</div>
                             <i class="fas fa-chevron-right text-gray-300"></i>
                         </button>
                     </div>
@@ -605,6 +534,95 @@
 
         <!-- ================= MODALS ================= -->
         
+        <!-- Add Employee Modal -->
+        <div id="addEmployeeModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center border-b pb-3 mb-4">
+                    <h3 id="formEmployeeTitle" class="font-bold text-gray-800 text-lg"><i class="fas fa-user-plus text-blue-500 mr-2"></i>New Employee Details</h3>
+                    <button type="button" onclick="toggleModal('addEmployeeModal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                
+                <input type="hidden" id="editEmpId" value="">
+                <div class="space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-gray-500 font-bold mb-1 block">Full Name</label>
+                            <input type="text" id="eName" placeholder="John Doe" class="w-full p-2.5 border rounded-lg text-sm bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-500 font-bold mb-1 block">EMP Code</label>
+                            <input type="text" id="eCode" placeholder="EMP001" class="w-full p-2.5 border rounded-lg text-sm bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-gray-500 font-bold mb-1 block">Login ID</label>
+                            <input type="text" id="eLogin" placeholder="Login ID" class="w-full p-2.5 border rounded-lg text-sm bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-500 font-bold mb-1 block">Password</label>
+                            <input type="password" id="ePass" placeholder="Password" class="w-full p-2.5 border rounded-lg text-sm bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold mb-1 block">Department</label>
+                        <select id="eDept" onchange="handleDeptChange()" class="w-full p-2.5 border rounded-lg text-sm bg-gray-50 outline-none focus:bg-white focus:border-blue-500">
+                            <option value="General">General</option>
+                            <option value="Service">Service</option>
+                            <option value="Engineer">Engineer</option>
+                            <option value="CCO">CCO</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Captain">Captain</option>
+                            <option value="Head Chef">Head Chef</option>
+                            <option value="Assistant Chef">Assistant Chef</option>
+                            <option value="Kitchen Supervisor">Kitchen Supervisor</option>
+                            <option value="Kitchen Helper">Kitchen Helper</option>
+                            <option value="Dish Washer">Dish Washer</option>
+                            <option value="Waiter">Waiter</option>
+                            <option value="Other">Other (Specify)</option>
+                        </select>
+                        <input type="text" id="eDeptOther" placeholder="Enter Custom Department" class="hidden mt-2 w-full p-2.5 border rounded-lg text-sm bg-gray-50 outline-none">
+                    </div>
+                    
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <label class="text-[10px] text-blue-600 font-bold mb-1 block uppercase tracking-wide">Work Shift Pattern</label>
+                        <select id="eTimingType" onchange="handleTimingChange()" class="w-full p-2 border rounded text-sm bg-white outline-none mb-2 font-medium">
+                            <option value="Single">Single Fixed Shift</option>
+                            <option value="Dual">Dual Shift (Flexi)</option>
+                        </select>
+
+                        <div id="timingSingle" class="grid grid-cols-2 gap-3">
+                            <div><label class="text-[10px] text-gray-500 font-bold block mb-1">IN Time</label><input type="time" id="eStart1" value="09:30" class="w-full p-2 border rounded text-sm bg-white"></div>
+                            <div><label class="text-[10px] text-gray-500 font-bold block mb-1">OUT Time</label><input type="time" id="eEnd1" value="19:00" class="w-full p-2 border rounded text-sm bg-white"></div>
+                        </div>
+
+                        <div id="timingDual" class="hidden space-y-2">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label class="text-[10px] text-gray-500 font-bold block mb-1">Shift 1 IN</label><input type="time" id="eDStart1" value="11:00" class="w-full p-2 border rounded text-sm bg-white"></div>
+                                <div><label class="text-[10px] text-gray-500 font-bold block mb-1">Shift 1 OUT</label><input type="time" id="eDEnd1" value="16:00" class="w-full p-2 border rounded text-sm bg-white"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label class="text-[10px] text-gray-500 font-bold block mb-1">Shift 2 IN</label><input type="time" id="eDStart2" value="19:00" class="w-full p-2 border rounded text-sm bg-white"></div>
+                                <div><label class="text-[10px] text-gray-500 font-bold block mb-1">Shift 2 OUT</label><input type="time" id="eDEnd2" value="00:00" class="w-full p-2 border rounded text-sm bg-white"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="text-[10px] text-gray-500 font-bold block mb-1">Base Salary (₹)</label><input type="number" id="eSalary" placeholder="Base Salary" class="w-full p-2.5 border rounded text-sm bg-gray-50"></div>
+                        <div><label class="text-[10px] text-gray-500 font-bold block mb-1">OT Rate (₹/hr)</label><input type="number" id="eRate" placeholder="OT Rate" class="w-full p-2.5 border rounded text-sm bg-gray-50"></div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="toggleModal('addEmployeeModal')" class="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-lg font-bold text-sm transition">Cancel</button>
+                    <button type="button" id="btnSaveEmployee" onclick="saveEmployee()" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold text-sm shadow transition">Save Employee</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Location Modal -->
         <div id="locationModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
@@ -814,23 +832,53 @@
             </div>
         </div>
 
-        <!-- Holiday Management Modal -->
-        <div id="holidayModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto">
-                <h3 class="font-bold text-base text-gray-800 mb-3"><i class="fas fa-gift text-red-500 mr-2"></i>Declare Holiday</h3>
-                <div class="flex flex-col gap-2 mb-4">
-                    <label class="text-[10px] text-gray-500 font-bold">Holiday Date</label>
-                    <input type="date" id="holidayDateInput" class="p-2 border rounded text-xs bg-gray-50">
+        <!-- Holidays List Modal (NEW) -->
+        <div id="holidayListModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-md max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-base text-gray-800"><i class="fas fa-gift text-red-500 mr-2"></i>Manage Holidays</h3>
+                    <button type="button" onclick="toggleModal('holidayListModal')" class="text-gray-400 hover:text-gray-800"><i class="fas fa-times"></i></button>
+                </div>
+                
+                <div class="bg-gray-50 border p-3 rounded-lg flex items-center gap-2 mb-4">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase block mb-1">Pick Date to Add Holiday</label>
+                        <!-- HTML standard date picker invokes calendar UI on mobile natively -->
+                        <input type="date" id="newHolidayDatePicker" class="w-full p-2 border rounded text-sm bg-white outline-none cursor-pointer">
+                    </div>
+                    <div class="pt-4">
+                        <button type="button" onclick="promptHolidayDetails()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-bold text-sm shadow">Add</button>
+                    </div>
+                </div>
 
-                    <label class="text-[10px] text-gray-500 font-bold">Holiday Name</label>
-                    <input type="text" id="holidayNameInput" placeholder="e.g. Diwali, Christmas, National Holiday" class="p-2 border rounded text-xs bg-gray-50">
+                <div class="flex-1 overflow-y-auto pr-1">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Saved Holidays</h4>
+                    <div id="holidayListContainer" class="flex flex-col gap-2">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <label class="text-[10px] text-gray-500 font-bold">Apply To</label>
-                    <select id="holidayTargetSelect" class="p-2 border rounded text-xs bg-gray-50"></select>
+        <!-- Add Holiday Details Popup -->
+        <div id="holidayDetailsModal" class="hidden absolute inset-0 bg-black bg-opacity-60 z-[60] flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-sm">
+                <h3 class="font-bold text-base text-gray-800 mb-3">Holiday Details</h3>
+                <p class="text-xs text-gray-600 mb-4">Adding holiday for <span id="lblHolidaySelectedDate" class="font-bold text-red-600"></span></p>
+                
+                <div class="mb-4 space-y-3">
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold block mb-1">Holiday Name</label>
+                        <input type="text" id="holidayNameInput" placeholder="e.g. Diwali, Christmas, National Holiday" class="w-full p-2 border rounded text-sm bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-gray-500 font-bold block mb-1">Apply To</label>
+                        <select id="holidayTargetSelect" class="w-full p-2 border rounded text-sm bg-gray-50"></select>
+                    </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" onclick="toggleModal('holidayModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-xs">Close</button>
-                    <button type="button" onclick="submitHolidayRecord()" class="flex-1 bg-red-500 text-white py-2 rounded font-bold text-xs">Apply Holiday</button>
+                    <button type="button" onclick="toggleModal('holidayDetailsModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-sm">Cancel</button>
+                    <button type="button" onclick="submitHolidayRecord()" class="flex-1 bg-red-500 text-white py-2 rounded font-bold text-sm">Save Holiday</button>
                 </div>
             </div>
         </div>
@@ -887,6 +935,7 @@
         
         // Application State
         let allEmployees = [];
+        let allHolidays = [];
         let currentAdmin = null;
         let adminFaceMatcher = null;
         let inactivityTimer; 
@@ -1221,7 +1270,7 @@
                 populateDepartmentDropdowns();
                 populateLeaveEmpDropdown();
                 populateHolidayEmpDropdown();
-                populateFallbackEmpDropdown(); // Update fallback dropdown
+                populateFallbackEmpDropdown();
                 updateFaceCounter();
                 
             } catch (err) {
@@ -1391,21 +1440,11 @@
         }
 
         // --- EMPLOYEE CRUD ---
-        function toggleAddForm() {
-            const form = document.getElementById('addEmployeeForm');
-            if (window.innerWidth < 1024) {
-                form.classList.toggle('hidden');
-                if (!form.classList.contains('hidden')) form.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                form.classList.remove('hidden');
-                form.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
 
         function resetEmployeeForm() {
             document.getElementById('editEmpId').value = '';
-            document.getElementById('formEmployeeTitle').innerText = 'New Employee Details';
-            document.querySelectorAll('#addEmployeeForm input').forEach(i => i.value = '');
+            document.getElementById('formEmployeeTitle').innerHTML = '<i class="fas fa-user-plus text-blue-500 mr-2"></i>New Employee Details';
+            document.querySelectorAll('#addEmployeeModal input').forEach(i => i.value = '');
             document.getElementById('eDept').value = 'General';
             document.getElementById('eTimingType').value = 'Single';
             document.getElementById('eStart1').value = '09:30';
@@ -1430,6 +1469,15 @@
         }
 
         async function saveEmployee() {
+            const editId = document.getElementById('editEmpId').value;
+            const empLimit = currentAdmin.employee_limit || 10;
+            
+            // Check Capacity Constraint
+            if (!editId && allEmployees.length >= empLimit) {
+                alert("Employee Limit Exceed Contact Developer");
+                return;
+            }
+
             let dept = document.getElementById('eDept').value === 'Other' ? document.getElementById('eDeptOther').value : document.getElementById('eDept').value;
             
             let finalTimingStr = "";
@@ -1440,7 +1488,6 @@
                 finalTimingStr = `${document.getElementById('eDStart1').value}-${document.getElementById('eDEnd1').value},${document.getElementById('eDStart2').value}-${document.getElementById('eDEnd2').value}`;
             }
 
-            const editId = document.getElementById('editEmpId').value;
             const empData = {
                 admin_id: currentAdmin.id, 
                 name: document.getElementById('eName').value.trim(),
@@ -1472,7 +1519,7 @@
             } else { 
                 alert(editId ? "Employee Updated Successfully!" : "Employee Saved Successfully!"); 
                 resetEmployeeForm();
-                if (window.innerWidth < 1024) toggleAddForm();
+                toggleModal('addEmployeeModal');
                 loadDashboard(); 
             }
         }
@@ -1484,7 +1531,7 @@
             const action = prompt(`Options for ${emp.name}:\n1: Edit Employee\n2: Register / Retrain Face\n3: Reset Password\n4: Delete Employee\n\nEnter option number:`);
             if (action === '1') {
                 document.getElementById('editEmpId').value = emp.id;
-                document.getElementById('formEmployeeTitle').innerText = `Edit: ${emp.name}`;
+                document.getElementById('formEmployeeTitle').innerHTML = `<i class="fas fa-user-edit text-blue-500 mr-2"></i>Edit: ${emp.name}`;
                 document.getElementById('eName').value = emp.name;
                 document.getElementById('eCode').value = emp.emp_code || '';
                 document.getElementById('eLogin').value = emp.login_id || '';
@@ -1519,7 +1566,7 @@
                         document.getElementById('eEnd1').value = s1o;
                     }
                 }
-                toggleAddForm();
+                toggleModal('addEmployeeModal');
             } else if (action === '2') {
                 openFaceTraining(emp);
             } else if (action === '3') {
@@ -1739,36 +1786,29 @@
             const video = document.getElementById('adminVideo');
             if (!video || !video.srcObject) return alert("Camera is not active. Please wait for the scanner to initialize.");
 
-            // Capture photo from video feed
             const canvas = document.getElementById('fallbackCanvas');
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // Mirror the canvas to match the CSS scale-x-[-1] flip
             context.translate(canvas.width, 0);
             context.scale(-1, 1);
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // Get base64 for backend upload
             const base64Image = canvas.toDataURL('image/jpeg', 0.8);
-
             const emp = allEmployees.find(e => e.id === empId);
 
             try {
-                // Execute standard database punch transaction
                 await executePunchTransaction(emp, type);
                 
                 const statusEl = document.getElementById('adminStatusText');
                 statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving photo...';
 
-                // Convert Base64 to a physical file (Blob)
                 const res = await fetch(base64Image);
                 const blob = await res.blob();
                 const dateOnly = new Date().toISOString().split('T')[0];
                 const fileName = `${dateOnly}_${emp.id}_${type}_${Date.now()}.jpg`;
 
-                // Upload directly to Supabase Storage
                 const { data: uploadData, error: uploadError } = await supabaseClient
                     .storage
                     .from('attendance_selfies')
@@ -1776,13 +1816,11 @@
 
                 if (uploadError) throw uploadError;
 
-                // Get the public URL for the image
                 const { data: publicUrlData } = supabaseClient
                     .storage
                     .from('attendance_selfies')
                     .getPublicUrl(fileName);
 
-                // Save the link to your database table
                 const { error: dbError } = await supabaseClient.from('attendance_photos').insert([{
                     employee_id: emp.id,
                     punch_type: type,
@@ -1794,7 +1832,6 @@
 
                 alert(`✅ Fallback selfie captured!\n${emp.name} Punched ${type.toUpperCase()} successfully.`);
                 
-                // Reset select
                 document.getElementById('fallbackEmpSelect').value = "";
                 statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-400"></i>Scanner Ready (No Geo-Lock)';
                 loadDashboard();
@@ -1848,7 +1885,7 @@
             logAudit("Punch Recorded", { emp_id: emp.id, type, timestamp: now });
         }
 
-        // --- VIEW PHOTO LOGIC (TIMEZONE FIXED & DUAL PHOTOS) ---
+        // --- VIEW PHOTO LOGIC ---
         async function viewPunchPhoto(empId, empName, dateStr) {
             document.getElementById('photoEmpName').innerText = `${empName} - ${dateStr}`;
             
@@ -1860,7 +1897,6 @@
             const outImg = document.getElementById('punchPhotoOutImg');
             const outErr = document.getElementById('punchPhotoOutError');
             
-            // Reset UI states
             inImg.classList.add('hidden'); inImg.src = "";
             outImg.classList.add('hidden'); outImg.src = "";
             inErr.classList.remove('hidden');
@@ -1870,7 +1906,6 @@
             loaderEl.classList.remove('hidden');
             toggleModal('photoModal');
 
-            // --- BULLETPROOF TIMEZONE FIX (48-Hour Buffer) ---
             const targetDate = new Date(dateStr);
             const prevDay = new Date(targetDate);
             prevDay.setDate(prevDay.getDate() - 1);
@@ -1886,13 +1921,12 @@
                     .eq('employee_id', empId)
                     .gte('created_at', gteDateString) 
                     .lte('created_at', lteDateString)   
-                    .order('created_at', { ascending: true }); // chronological
+                    .order('created_at', { ascending: true }); 
 
                 loaderEl.classList.add('hidden');
                 containerEl.classList.remove('hidden');
 
                 if (!error && data && data.length > 0) {
-                    // Extract the first IN photo and the last OUT photo for the day
                     const inPhoto = data.find(p => p.punch_type === 'in');
                     const outPhoto = [...data].reverse().find(p => p.punch_type === 'out');
 
@@ -1967,7 +2001,6 @@
         }
 
         // --- REPORTS LOGIC ---
-
         async function generateDailyReport() {
             const dateStr = document.getElementById('dailyReportDate').value;
             if (!dateStr) return;
@@ -1998,15 +2031,7 @@
                 const estDailyPay = (status === 'Absent' ? 0 : dailyBase) + otPay;
 
                 return {
-                    emp,
-                    status: record ? status : 'Absent',
-                    punches,
-                    totalHours,
-                    otHours,
-                    isLate,
-                    dailyBase: (status === 'Absent' ? 0 : dailyBase),
-                    otPay,
-                    estDailyPay
+                    emp, status: record ? status : 'Absent', punches, totalHours, otHours, isLate, dailyBase: (status === 'Absent' ? 0 : dailyBase), otPay, estDailyPay
                 };
             });
 
@@ -2049,9 +2074,7 @@
                 const s1Out = row.punches[0]?.out ? formatTime(row.punches[0].out) : '--:--';
                 const s2In = row.punches[1]?.in ? formatTime(row.punches[1].in) : '--:--';
                 const s2Out = row.punches[1]?.out ? formatTime(row.punches[1].out) : '--:--';
-
-                const statusColor = row.status === 'Present' ? 'text-green-600 bg-green-50' : 
-                                    row.status === 'Late' ? 'text-red-600 bg-red-50' : 'text-gray-500 bg-gray-50';
+                const statusColor = row.status === 'Present' ? 'text-green-600 bg-green-50' : row.status === 'Late' ? 'text-red-600 bg-red-50' : 'text-gray-500 bg-gray-50';
 
                 return `
                 <tr class="hover:bg-gray-50 transition">
@@ -2060,30 +2083,19 @@
                         <div class="text-[10px] text-gray-400 font-mono">${row.emp.emp_code || '-'}</div>
                     </td>
                     <td class="p-2.5 text-gray-600 font-medium">${row.emp.department || 'General'}</td>
-                    <td class="p-2.5">
-                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusColor}">${row.status}</span>
-                    </td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusColor}">${row.status}</span></td>
                     <td class="p-2.5 font-mono text-[11px] text-gray-600">${s1In} &rarr; ${s1Out}</td>
                     <td class="p-2.5 font-mono text-[11px] text-gray-600">${s2In} &rarr; ${s2Out}</td>
-                    <td class="p-2.5 text-right font-bold text-xs text-gray-800">
-                        ${row.totalHours.toFixed(1)}h 
-                        <span class="text-[10px] text-purple-600 block">${row.otHours > 0 ? '+' + row.otHours.toFixed(1) + 'h OT' : ''}</span>
-                    </td>
+                    <td class="p-2.5 text-right font-bold text-xs text-gray-800">${row.totalHours.toFixed(1)}h <span class="text-[10px] text-purple-600 block">${row.otHours > 0 ? '+' + row.otHours.toFixed(1) + 'h OT' : ''}</span></td>
                     <td class="p-2.5 text-right font-bold text-xs text-blue-600">₹${row.estDailyPay.toFixed(0)}</td>
-                    <td class="p-2.5 text-center">
-                        <button type="button" onclick="viewPunchPhoto('${row.emp.id}', '${row.emp.name.replace(/'/g, "\\'")}', '${dateStr}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded-lg transition" title="View Fallback Selfie">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                    </td>
+                    <td class="p-2.5 text-center"><button type="button" onclick="viewPunchPhoto('${row.emp.id}', '${row.emp.name.replace(/'/g, "\\'")}', '${dateStr}')" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded-lg transition" title="View Fallback Selfie"><i class="fas fa-camera"></i></button></td>
                 </tr>`;
             }).join('');
         }
 
-        // --- MONTHLY SUMMARY (PRORATED SALARY + OT CALCULATION) ---
         async function generateMonthlyReport() {
             const monthStr = document.getElementById('monthlyReportPicker').value;
             if (!monthStr) return;
-
             const tbody = document.getElementById('monthlyReportTableBody');
             tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i> Aggregating payroll for ${monthStr}...</td></tr>`;
 
@@ -2093,21 +2105,15 @@
             const endDate = `${monthStr}-${String(daysInMonth).padStart(2, '0')}`;
 
             const { data: attendanceList, error } = await supabaseClient
-                .from('attendance')
-                .select('*')
-                .gte('date', startDate)
-                .lte('date', endDate);
+                .from('attendance').select('*').gte('date', startDate).lte('date', endDate);
 
             if (error) {
-                console.error("Monthly aggregate error:", error);
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-red-500">Failed to aggregate monthly data: ${error.message}</td></tr>`;
                 return;
             }
 
             const standardHours = currentAdmin?.standard_hours || 8;
-            let totalPresentAgg = 0;
-            let totalOtAgg = 0;
-            let totalPayrollAgg = 0;
+            let totalPresentAgg = 0, totalOtAgg = 0, totalPayrollAgg = 0;
 
             currentMonthlyReportData = allEmployees.map(emp => {
                 const records = (attendanceList || []).filter(a => a.employee_id === emp.id);
@@ -2129,25 +2135,9 @@
                 const otSalary = otHours * otRate;
                 const totalGross = earnedBasicSalary + otSalary;
 
-                totalPresentAgg += presents;
-                totalOtAgg += otHours;
-                totalPayrollAgg += totalGross;
+                totalPresentAgg += presents; totalOtAgg += otHours; totalPayrollAgg += totalGross;
 
-                return { 
-                    emp, 
-                    daysInMonth,
-                    presents, 
-                    absents,
-                    lates, 
-                    totalMonthHrs, 
-                    otHours, 
-                    monthlyFixed,
-                    perDaySalary,
-                    earnedBasicSalary, 
-                    otRate,
-                    otSalary, 
-                    totalGross 
-                };
+                return { emp, daysInMonth, presents, absents, lates, totalMonthHrs, otHours, monthlyFixed, perDaySalary, earnedBasicSalary, otRate, otSalary, totalGross };
             });
 
             document.getElementById('monthlyKpiPresents').innerText = totalPresentAgg;
@@ -2166,15 +2156,8 @@
                         <div class="text-[10px] text-gray-400 font-mono">${r.emp.emp_code || '-'}</div>
                     </td>
                     <td class="p-2.5 text-gray-600">${r.emp.department || 'General'}</td>
-                    <td class="p-2.5 font-mono text-[11px]">
-                        <span class="text-green-600 font-bold">${r.presents}P</span> / 
-                        <span class="text-red-500 font-bold">${r.absents}A</span> / 
-                        <span class="text-orange-500 font-bold">${r.lates}L</span>
-                    </td>
-                    <td class="p-2.5 text-right font-bold text-xs text-gray-800">
-                        ${r.totalMonthHrs.toFixed(1)}h 
-                        <span class="block text-[10px] text-purple-600">(+${r.otHours.toFixed(1)}h OT)</span>
-                    </td>
+                    <td class="p-2.5 font-mono text-[11px]"><span class="text-green-600 font-bold">${r.presents}P</span> / <span class="text-red-500 font-bold">${r.absents}A</span> / <span class="text-orange-500 font-bold">${r.lates}L</span></td>
+                    <td class="p-2.5 text-right font-bold text-xs text-gray-800">${r.totalMonthHrs.toFixed(1)}h <span class="block text-[10px] text-purple-600">(+${r.otHours.toFixed(1)}h OT)</span></td>
                     <td class="p-2.5 text-right text-xs">
                         <div class="font-medium text-gray-700">₹${Math.round(r.earnedBasicSalary).toLocaleString('en-IN')} <span class="text-[10px] text-gray-400">(₹${Math.round(r.perDaySalary)}×${r.presents}d)</span></div>
                         <div class="text-[10px] text-purple-600 font-semibold">+₹${Math.round(r.otSalary).toLocaleString('en-IN')} OT</div>
@@ -2202,18 +2185,9 @@
             const dateStr = currentDashboardDate || getTodayDateStr();
             const missing = allEmployees.filter(e => e.status === 'missing');
             if (missing.length === 0) return alert("No employees are marked missing today.");
-
             if (!confirm(`Mark ${missing.length} missing employees as Absent for ${dateStr}?`)) return;
 
-            const inserts = missing.map(e => ({
-                employee_id: e.id,
-                date: dateStr,
-                status: 'Absent',
-                punches: [],
-                total_hours: 0,
-                is_manual_override: true
-            }));
-
+            const inserts = missing.map(e => ({ employee_id: e.id, date: dateStr, status: 'Absent', punches: [], total_hours: 0, is_manual_override: true }));
             const { error } = await supabaseClient.from('attendance').upsert(inserts, { onConflict: 'employee_id, date' });
             if (error) alert("Bulk update failed: " + error.message);
             else {
@@ -2239,7 +2213,7 @@
             }
         }
 
-        // --- LEAVE & HOLIDAY MANAGEMENT ---
+        // --- LEAVE & NEW HOLIDAY MANAGEMENT ---
         function openLeaveModal() {
             populateLeaveEmpDropdown();
             toggleModal('leaveModal');
@@ -2260,38 +2234,52 @@
             if (!date) return alert("Please select a date.");
 
             try {
-                await supabaseClient.from('leaves').insert([{
-                    admin_id: currentAdmin.id,
-                    employee_id: empId,
-                    leave_date: date,
-                    leave_type: type,
-                    reason: reason || 'Scheduled Leave',
-                    status: 'Approved'
-                }]);
-
-                await supabaseClient.from('attendance').upsert([{
-                    employee_id: empId,
-                    date: date,
-                    status: type,
-                    punches: [],
-                    total_hours: 0,
-                    is_manual_override: true,
-                    notes: `Leave: ${reason || type}`
-                }], { onConflict: 'employee_id, date' });
+                await supabaseClient.from('leaves').insert([{ admin_id: currentAdmin.id, employee_id: empId, leave_date: date, leave_type: type, reason: reason || 'Scheduled Leave', status: 'Approved' }]);
+                await supabaseClient.from('attendance').upsert([{ employee_id: empId, date: date, status: type, punches: [], total_hours: 0, is_manual_override: true, notes: `Leave: ${reason || type}` }], { onConflict: 'employee_id, date' });
 
                 alert("Leave recorded successfully!");
                 toggleModal('leaveModal');
                 loadDashboard();
                 logAudit("Leave Recorded", { emp_id: empId, date, type });
-            } catch(e) {
-                alert("Error recording leave: " + e.message);
-            }
+            } catch(e) { alert("Error recording leave: " + e.message); }
         }
 
-        function openHolidayModal() {
-            document.getElementById('holidayDateInput').value = currentDashboardDate || getTodayDateStr();
+        async function openHolidayListModal() {
+            document.getElementById('newHolidayDatePicker').value = "";
+            toggleModal('holidayListModal');
+            await loadHolidays();
+        }
+        
+        async function loadHolidays() {
+            const container = document.getElementById('holidayListContainer');
+            container.innerHTML = '<p class="text-xs text-gray-400">Loading holidays...</p>';
+            
+            const { data, error } = await supabaseClient.from('holidays').select('*').eq('admin_id', currentAdmin.id).order('holiday_date', { ascending: true });
+            allHolidays = data || [];
+            
+            if(error) { container.innerHTML = `<p class="text-xs text-red-500">Error: ${error.message}</p>`; return; }
+            if(allHolidays.length === 0) { container.innerHTML = `<p class="text-xs text-gray-500">No holidays declared yet.</p>`; return; }
+            
+            container.innerHTML = allHolidays.map(h => `
+                <div class="flex items-center justify-between p-2 bg-gray-50 border rounded text-xs">
+                    <div>
+                        <span class="font-bold text-gray-800">${h.name}</span>
+                        <p class="text-[10px] text-gray-500">${h.holiday_date}</p>
+                    </div>
+                    <button type="button" onclick="deleteHoliday('${h.id}', '${h.holiday_date}')" class="text-red-500 hover:text-red-700 bg-red-50 px-2 py-1 rounded transition"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            `).join('');
+        }
+        
+        function promptHolidayDetails() {
+            const selectedDate = document.getElementById('newHolidayDatePicker').value;
+            if(!selectedDate) return alert("Please pick a date first.");
+            
+            document.getElementById('lblHolidaySelectedDate').innerText = selectedDate;
+            document.getElementById('holidayNameInput').value = "";
             populateHolidayEmpDropdown();
-            toggleModal('holidayModal');
+            
+            toggleModal('holidayDetailsModal');
         }
 
         function populateHolidayEmpDropdown() {
@@ -2301,42 +2289,40 @@
         }
 
         async function submitHolidayRecord() {
-            const date = document.getElementById('holidayDateInput').value;
+            const date = document.getElementById('newHolidayDatePicker').value;
             const name = document.getElementById('holidayNameInput').value || 'Holiday';
             const target = document.getElementById('holidayTargetSelect').value;
             
-            if (!date) return alert("Please select a date.");
-
             try {
-                let targets = target === 'all' ? allEmployees.map(e => e.id) : [target];
-                let attendancePayloads = targets.map(empId => ({
-                    employee_id: empId,
-                    date: date,
-                    status: 'Paid Leave',
-                    punches: [],
-                    total_hours: 0,
-                    is_manual_override: true,
-                    notes: `Holiday: ${name}`
-                }));
+                // Save to dedicated holidays table
+                const { error: holError } = await supabaseClient.from('holidays').insert([{ admin_id: currentAdmin.id, holiday_date: date, name: name }]);
+                if (holError && holError.code !== '23505') throw holError; // ignore if exact holiday already exists, proceed to mark attendance.
 
-                let leavePayloads = targets.map(empId => ({
-                    admin_id: currentAdmin.id,
-                    employee_id: empId,
-                    leave_date: date,
-                    leave_type: 'Paid Leave',
-                    reason: `Holiday: ${name}`,
-                    status: 'Approved'
-                }));
+                // Push Paid Leaves to targets
+                let targets = target === 'all' ? allEmployees.map(e => e.id) : [target];
+                let attendancePayloads = targets.map(empId => ({ employee_id: empId, date: date, status: 'Paid Leave', punches: [], total_hours: 0, is_manual_override: true, notes: `Holiday: ${name}` }));
+                let leavePayloads = targets.map(empId => ({ admin_id: currentAdmin.id, employee_id: empId, leave_date: date, leave_type: 'Paid Leave', reason: `Holiday: ${name}`, status: 'Approved' }));
 
                 if(leavePayloads.length) await supabaseClient.from('leaves').insert(leavePayloads);
                 if(attendancePayloads.length) await supabaseClient.from('attendance').upsert(attendancePayloads, { onConflict: 'employee_id, date' });
 
                 alert("Holiday applied successfully!");
-                toggleModal('holidayModal');
+                toggleModal('holidayDetailsModal');
+                loadHolidays();
                 loadDashboard();
                 logAudit("Holiday Marked", { date, name, target });
-            } catch (e) {
-                alert("Error applying holiday: " + e.message);
+            } catch (e) { alert("Error applying holiday: " + e.message); }
+        }
+
+        async function deleteHoliday(id, holidayDate) {
+            if(!confirm(`Delete holiday for ${holidayDate}? Note: Employees already granted Paid Leave for this day will remain on leave.`)) return;
+            
+            const { error } = await supabaseClient.from('holidays').delete().eq('id', id);
+            if(error) alert("Error deleting holiday: " + error.message);
+            else {
+                alert("Holiday removed!");
+                loadHolidays();
+                logAudit("Holiday Deleted", { date: holidayDate });
             }
         }
 
@@ -2375,11 +2361,9 @@
             const rad = document.getElementById('locRadius').value;
             if(!lat || !lng || !rad) return alert("Please fill all location fields");
 
-            const { error } = await supabaseClient.from('admins').update({
-                geo_lat: parseFloat(lat), geo_lng: parseFloat(lng), geo_radius: parseFloat(rad)
-            }).eq('id', currentAdmin.id);
-
+            const { error } = await supabaseClient.from('admins').update({ geo_lat: parseFloat(lat), geo_lng: parseFloat(lng), geo_radius: parseFloat(rad) }).eq('id', currentAdmin.id);
             if(error) return alert("Error saving location: " + error.message);
+            
             currentAdmin.geo_lat = lat; currentAdmin.geo_lng = lng; currentAdmin.geo_radius = rad;
             alert("Geofence activated successfully!");
             toggleModal('locationModal');
@@ -2413,11 +2397,7 @@
             const stdHours = parseFloat(document.getElementById('cfgStandardHours').value) || 8;
             const otMult = parseFloat(document.getElementById('cfgOtMultiplier').value) || 1.5;
 
-            const { error } = await supabaseClient.from('admins').update({
-                standard_hours: stdHours,
-                ot_multiplier: otMult
-            }).eq('id', currentAdmin.id);
-
+            const { error } = await supabaseClient.from('admins').update({ standard_hours: stdHours, ot_multiplier: otMult }).eq('id', currentAdmin.id);
             if (error) alert("Error saving salary config: " + error.message);
             else {
                 currentAdmin.standard_hours = stdHours;
@@ -2433,11 +2413,7 @@
         async function logAudit(action, details = {}) {
             if (!currentAdmin) return;
             try {
-                await supabaseClient.from('audit_logs').insert([{
-                    admin_id: currentAdmin.id,
-                    action,
-                    details
-                }]);
+                await supabaseClient.from('audit_logs').insert([{ admin_id: currentAdmin.id, action, details }]);
             } catch(e) { }
         }
 
@@ -2447,28 +2423,9 @@
                 if (error || !data || data.length === 0) return alert("No audit logs available.");
                 
                 let csv = "Timestamp,Action,Details\n";
-                data.forEach(r => {
-                    csv += `"${r.created_at}","${r.action}","${JSON.stringify(r.details).replace(/"/g, '""')}"\n`;
-                });
+                data.forEach(r => { csv += `"${r.created_at}","${r.action}","${JSON.stringify(r.details).replace(/"/g, '""')}"\n`; });
                 downloadCsvBlob(csv, "System_Audit_Trail.csv");
             } catch(e) { alert("Audit export error: " + e.message); }
-        }
-
-        // --- BACKUP SYSTEM JSON ---
-        async function backupSystemData() {
-            try {
-                const backupPayload = {
-                    admin: currentAdmin,
-                    employees: allEmployees,
-                    exportDate: new Date().toISOString()
-                };
-                const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Attendance_Backup_${currentAdmin.firm_name || 'Admin'}_${getTodayDateStr()}.json`;
-                a.click();
-            } catch(e) { alert("Backup error: " + e.message); }
         }
 
         // --- OFFLINE SYNC QUEUE ---
@@ -2551,7 +2508,6 @@
                     const s1Out = row.punches[0]?.out ? formatTime(row.punches[0].out) : '--:--';
                     const s2In = row.punches[1]?.in ? formatTime(row.punches[1].in) : '--:--';
                     const s2Out = row.punches[1]?.out ? formatTime(row.punches[1].out) : '--:--';
-
                     csvContent += `"${dateStr}","${row.emp.name}","${row.emp.emp_code || '-'}","${row.emp.department || 'General'}","${row.status}","${s1In}","${s1Out}","${s2In}","${s2Out}",${row.totalHours.toFixed(2)},${row.otHours.toFixed(2)},₹${row.dailyBase.toFixed(2)},₹${row.otPay.toFixed(2)},₹${row.estDailyPay.toFixed(2)}\n`;
                 });
                 downloadCsvBlob(csvContent, `Daily_Attendance_Report_${dateStr}.csv`);
@@ -2573,21 +2529,14 @@
         async function exportMonthlyCSV() {
             const monthVal = document.getElementById('monthlyReportPicker').value || document.getElementById('reportMonth').value; 
             if (!monthVal) return alert("Please select a month.");
-
             const [y, m] = monthVal.split('-').map(Number);
             const daysInMonth = new Date(y, m, 0).getDate();
             const startDate = `${monthVal}-01`;
             const endDate = `${monthVal}-${String(daysInMonth).padStart(2, '0')}`;
-
-            const { data: attendanceList, error } = await supabaseClient.from('attendance')
-                .select('*')
-                .gte('date', startDate)
-                .lte('date', endDate);
-                
+            const { data: attendanceList, error } = await supabaseClient.from('attendance').select('*').gte('date', startDate).lte('date', endDate);
+            
             if (error) return alert("Error fetching monthly data: " + error.message);
-
             const standardHours = currentAdmin?.standard_hours || 8;
-
             let csvContent = "Month,Employee Name,EMP Code,Department,Total Month Days,Present Days,Absent Days,Late Days,Total Work Hours,OT Hours,Monthly Base Salary,Per Day Rate,Calculated Base Pay,OT Rate,OT Pay,Calculated Gross Salary\n";
 
             allEmployees.forEach(e => {
@@ -2612,7 +2561,6 @@
 
                 csvContent += `"${monthVal}","${e.name}","${e.emp_code || '-'}","${e.department || 'General'}",${daysInMonth},${presents},${absents},${lates},${totalMonthHrs.toFixed(2)},${otHours.toFixed(2)},₹${monthlyFixed.toFixed(2)},₹${perDayRate.toFixed(2)},₹${earnedBaseSalary.toFixed(2)},₹${otRate.toFixed(2)},₹${otSalary.toFixed(2)},₹${totalGross.toFixed(2)}\n`;
             });
-
             downloadCsvBlob(csvContent, `Monthly_Payroll_Report_${monthVal}.csv`);
             const modal = document.getElementById('monthlyReportModal');
             if (modal && !modal.classList.contains('hidden')) toggleModal('monthlyReportModal');
