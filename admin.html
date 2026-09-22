@@ -179,7 +179,7 @@
                     <button type="button" onclick="openBulkModal()" class="flex items-center gap-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition px-3 py-1.5 rounded-lg border">
                         <i class="fas fa-tasks text-blue-600"></i> Bulk Ops
                     </button>
-                    <button type="button" onclick="toggleModal('addEmployeeModal')" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <button type="button" onclick="openAddEmployeeModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
                         <i class="fas fa-user-plus"></i> Add Employee
                     </button>
                 </div>
@@ -252,7 +252,7 @@
 
                             <!-- Mobile Add Employee Trigger -->
                             <div class="lg:hidden flex justify-center pb-4">
-                                <button type="button" onclick="toggleModal('addEmployeeModal')" class="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2 text-xs">
+                                <button type="button" onclick="openAddEmployeeModal()" class="bg-blue-600 text-white px-6 py-2.5 rounded-full font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2 text-xs">
                                     <i class="fas fa-user-plus"></i> Add Employee
                                 </button>
                             </div>
@@ -1167,6 +1167,11 @@
             }
         }
 
+        function openAddEmployeeModal() {
+            resetEmployeeForm();
+            toggleModal('addEmployeeModal');
+        }
+
         // --- DASHBOARD LOGIC ---
         function calculateLate(empTiming, firstPunchInISO) {
             if(!empTiming || !firstPunchInISO) return false;
@@ -1453,11 +1458,46 @@
         function resetEmployeeForm() {
             document.getElementById('editEmpId').value = '';
             document.getElementById('formEmployeeTitle').innerHTML = '<i class="fas fa-user-plus text-blue-500 mr-2"></i>New Employee Details';
-            document.querySelectorAll('#addEmployeeModal input').forEach(i => i.value = '');
+            
+            // Clear text and numeric inputs manually so we don't accidentally wipe internal states or time settings unintentioanlly.
+            document.getElementById('eName').value = '';
+            document.getElementById('eCode').value = '';
+            document.getElementById('eLogin').value = '';
+            document.getElementById('ePass').value = '';
+            document.getElementById('eSalary').value = '';
+            document.getElementById('eRate').value = '';
+            document.getElementById('eDeptOther').value = '';
+            document.getElementById('eDeptOther').classList.add('hidden');
             document.getElementById('eDept').value = 'General';
-            document.getElementById('eTimingType').value = 'Single';
-            document.getElementById('eStart1').value = '09:30';
-            document.getElementById('eEnd1').value = '19:00';
+
+            // Load saved timing preferences for this specific admin if they exist
+            let savedPrefs = null;
+            if(currentAdmin) {
+                const savedStr = localStorage.getItem(`last_shift_admin_${currentAdmin.id}`);
+                if(savedStr) {
+                    try { savedPrefs = JSON.parse(savedStr); } catch(e){}
+                }
+            }
+
+            if (savedPrefs) {
+                document.getElementById('eTimingType').value = savedPrefs.type || 'Single';
+                document.getElementById('eStart1').value = savedPrefs.s1in || '09:30';
+                document.getElementById('eEnd1').value = savedPrefs.s1out || '19:00';
+                document.getElementById('eDStart1').value = savedPrefs.d1in || '11:00';
+                document.getElementById('eDEnd1').value = savedPrefs.d1out || '16:00';
+                document.getElementById('eDStart2').value = savedPrefs.d2in || '19:00';
+                document.getElementById('eDEnd2').value = savedPrefs.d2out || '00:00';
+            } else {
+                // System Defaults
+                document.getElementById('eTimingType').value = 'Single';
+                document.getElementById('eStart1').value = '09:30';
+                document.getElementById('eEnd1').value = '19:00';
+                document.getElementById('eDStart1').value = '11:00';
+                document.getElementById('eDEnd1').value = '16:00';
+                document.getElementById('eDStart2').value = '19:00';
+                document.getElementById('eDEnd2').value = '00:00';
+            }
+            
             handleTimingChange();
         }
 
@@ -1527,6 +1567,19 @@
                 else alert("Error: " + error.message);
             } else { 
                 alert(editId ? "Employee Updated Successfully!" : "Employee Saved Successfully!"); 
+                
+                // Save specific admin shift configuration to localStorage for future use
+                const timingPrefs = {
+                    type: document.getElementById('eTimingType').value,
+                    s1in: document.getElementById('eStart1').value,
+                    s1out: document.getElementById('eEnd1').value,
+                    d1in: document.getElementById('eDStart1').value,
+                    d1out: document.getElementById('eDEnd1').value,
+                    d2in: document.getElementById('eDStart2').value,
+                    d2out: document.getElementById('eDEnd2').value
+                };
+                localStorage.setItem(`last_shift_admin_${currentAdmin.id}`, JSON.stringify(timingPrefs));
+
                 resetEmployeeForm();
                 toggleModal('addEmployeeModal');
                 loadDashboard(); 
@@ -2133,16 +2186,16 @@
                 
                 let otHours = 0;
                 records.forEach(r => {
-                    const h = Number(r.total_hours) || 0;
-                    if (h > standardHours) otHours += (h - standardHours);
+                    let dailyHrs = Number(r.total_hours) || 0;
+                    if (dailyHrs > standardHours) otHours += (dailyHrs - standardHours); 
                 });
 
-                const monthlyFixed = Number(emp.monthly_salary) || 0;
-                const perDaySalary = monthlyFixed > 0 ? (monthlyFixed / daysInMonth) : 0;
-                const earnedBasicSalary = perDaySalary * presents;
-                const otRate = Number(emp.overtime_rate) || 0;
+                const monthlyFixed = parseFloat(e.monthly_salary || 0);
+                const perDayRate = monthlyFixed > 0 ? (monthlyFixed / daysInMonth) : 0;
+                const earnedBaseSalary = perDayRate * presents;
+                const otRate = parseFloat(e.overtime_rate || 0);
                 const otSalary = otHours * otRate;
-                const totalGross = earnedBasicSalary + otSalary;
+                const totalGross = earnedBaseSalary + otSalary;
 
                 totalPresentAgg += presents; totalOtAgg += otHours; totalPayrollAgg += totalGross;
 
