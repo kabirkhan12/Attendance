@@ -488,8 +488,9 @@
                             <div class="flex items-center gap-3"><i class="far fa-calendar-alt text-gray-400 w-5"></i> Monthly Time Tracking Report (Modal)</div>
                             <i class="fas fa-download text-gray-300"></i>
                         </button>
-                        <button type="button" onclick="exportAuditLogCSV()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
-                            <div class="flex items-center gap-3"><i class="fas fa-history text-gray-400 w-5"></i> System Audit Trail (CSV)</div>
+                        <!-- Replaced Audit Trail with Individual Employee Report -->
+                        <button type="button" onclick="openEmployeeReportModal()" class="flex items-center justify-between p-4 hover:bg-gray-50 text-xs lg:text-sm text-gray-700 transition">
+                            <div class="flex items-center gap-3"><i class="fas fa-user-clock text-gray-400 w-5"></i> Individual Employee Report (CSV)</div>
                             <i class="fas fa-download text-gray-300"></i>
                         </button>
                     </div>
@@ -692,7 +693,7 @@
             </div>
         </div>
 
-        <!-- Monthly Report Modal (Legacy compatibility) -->
+        <!-- Monthly Report Modal -->
         <div id="monthlyReportModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
                 <h3 class="font-bold text-lg mb-4 text-gray-800"><i class="far fa-calendar-alt text-blue-500 mr-2"></i> Monthly Report</h3>
@@ -701,6 +702,20 @@
                 <div class="flex gap-2">
                     <button type="button" onclick="toggleModal('monthlyReportModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-sm">Cancel</button>
                     <button type="button" onclick="exportMonthlyCSV()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm">Download CSV</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employee Specific Monthly Report Modal -->
+        <div id="employeeReportModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm">
+                <h3 class="font-bold text-lg mb-4 text-gray-800"><i class="fas fa-user-clock text-blue-500 mr-2"></i> Employee Report</h3>
+                <p class="text-xs text-gray-500 mb-4">Download a complete monthly in/out report for a specific employee.</p>
+                <select id="empReportSelect" class="w-full p-3 border rounded mb-3 text-sm bg-gray-50 outline-none"></select>
+                <input type="month" id="empReportMonth" class="w-full p-3 border rounded mb-4 text-sm bg-gray-50">
+                <div class="flex gap-2">
+                    <button type="button" onclick="toggleModal('employeeReportModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded font-bold text-sm">Cancel</button>
+                    <button type="button" onclick="exportEmployeeMonthlyCSV()" class="flex-1 bg-blue-600 text-white py-2 rounded font-bold text-sm">Download CSV</button>
                 </div>
             </div>
         </div>
@@ -841,7 +856,7 @@
             </div>
         </div>
 
-        <!-- Holidays List Modal (NEW) -->
+        <!-- Holidays List Modal -->
         <div id="holidayListModal" class="hidden absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl p-5 w-full max-w-md max-h-[90vh] flex flex-col">
                 <div class="flex justify-between items-center mb-3">
@@ -2479,17 +2494,6 @@
             } catch(e) { }
         }
 
-        async function exportAuditLogCSV() {
-            try {
-                const { data, error } = await supabaseClient.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200);
-                if (error || !data || data.length === 0) return alert("No audit logs available.");
-                
-                let csv = "Timestamp,Action,Details\n";
-                data.forEach(r => { csv += `"${r.created_at}","${r.action}","${JSON.stringify(r.details).replace(/"/g, '""')}"\n`; });
-                downloadCsvBlob(csv, "System_Audit_Trail.csv");
-            } catch(e) { alert("Audit export error: " + e.message); }
-        }
-
         // --- OFFLINE SYNC QUEUE ---
         function queueOfflinePunch(empId, type, timestamp) {
             const queue = JSON.parse(localStorage.getItem('offline_punches') || '[]');
@@ -2543,6 +2547,68 @@
 
         window.addEventListener('online', () => { checkOfflineQueue(); flushOfflineQueue(); });
         window.addEventListener('offline', () => { checkOfflineQueue(); });
+
+        // --- INDIVIDUAL EMPLOYEE REPORT MODAL ---
+        function openEmployeeReportModal() {
+            const select = document.getElementById('empReportSelect');
+            select.innerHTML = '<option value="">-- Select Employee --</option>' + 
+                allEmployees.map(e => `<option value="${e.id}">${e.name} (${e.emp_code || 'EMP'})</option>`).join('');
+            
+            document.getElementById('empReportMonth').value = getTodayDateStr().substring(0, 7);
+            toggleModal('employeeReportModal');
+        }
+
+        async function exportEmployeeMonthlyCSV() {
+            const empId = document.getElementById('empReportSelect').value;
+            const monthVal = document.getElementById('empReportMonth').value;
+            if (!empId) return alert("Please select an employee.");
+            if (!monthVal) return alert("Please select a month.");
+
+            const emp = allEmployees.find(e => e.id === empId);
+            if (!emp) return alert("Employee not found.");
+
+            const [y, m] = monthVal.split('-').map(Number);
+            const daysInMonth = new Date(y, m, 0).getDate();
+            const startDate = `${monthVal}-01`;
+            const endDate = `${monthVal}-${String(daysInMonth).padStart(2, '0')}`;
+
+            const { data: attendanceList, error } = await supabaseClient
+                .from('attendance')
+                .select('*')
+                .eq('employee_id', empId)
+                .gte('date', startDate)
+                .lte('date', endDate)
+                .order('date', { ascending: true });
+
+            if (error) return alert("Error fetching data: " + error.message);
+
+            const standardHours = currentAdmin?.standard_hours || 8;
+            let csvContent = `Monthly Attendance Report: ${emp.name} (${emp.emp_code || 'N/A'}) - ${monthVal}\n\n`;
+            csvContent += "Date,Status,Shift 1 IN,Shift 1 OUT,Shift 2 IN,Shift 2 OUT,Total Hours,OT Hours,Notes\n";
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${monthVal}-${String(d).padStart(2, '0')}`;
+                const record = (attendanceList || []).find(a => a.date === dateStr);
+                
+                if (record) {
+                    const punches = record.punches || [];
+                    const s1In = punches[0]?.in ? formatTime(punches[0].in) : '--:--';
+                    const s1Out = punches[0]?.out ? formatTime(punches[0].out) : '--:--';
+                    const s2In = punches[1]?.in ? formatTime(punches[1].in) : '--:--';
+                    const s2Out = punches[1]?.out ? formatTime(punches[1].out) : '--:--';
+                    const totalHrs = Number(record.total_hours) || 0;
+                    const otHrs = totalHrs > standardHours ? (totalHrs - standardHours) : 0;
+                    const notes = (record.notes || '').replace(/"/g, '""');
+
+                    csvContent += `"${dateStr}","${record.status}","${s1In}","${s1Out}","${s2In}","${s2Out}",${totalHrs.toFixed(2)},${otHrs.toFixed(2)},"${notes}"\n`;
+                } else {
+                    csvContent += `"${dateStr}","Absent","--:--","--:--","--:--","--:--",0.00,0.00,""\n`;
+                }
+            }
+
+            downloadCsvBlob(csvContent, `Employee_Report_${emp.name.replace(/\s+/g, '_')}_${monthVal}.csv`);
+            toggleModal('employeeReportModal');
+        }
 
         // --- CSV EXPORTS ---
         function downloadCsvBlob(csvContent, fileName) {
